@@ -1,0 +1,7 @@
+[engine.archlast-luanti]
+repo = https://github.com/luanti-org/luanti.git
+upstream = https://github.com/luanti-org/luanti.git
+commit = c0e6812b1a4260bb25a1f606f70f55f4962bb97d
+upstream_branch = master
+# TODO: swap repo to algochad/archlast-luanti fork URL once created
+# TODO: run `git -C engine/archlast-luanti remote set-url origin <FORK_URL>` after fork creation
