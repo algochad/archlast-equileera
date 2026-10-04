@@ -1,6 +1,7 @@
 -- arch_thirdperson - Improved third-person camera
 -- Based on ctf-improvedthirdperson by fancyfinn9
 -- Adapted: no ctf_settings dependency, uses native set_eye_offset + chat toggle
+-- Patches mcl_player/animations.lua to force arms down when _arch_tp_active meta == 1
 -- SPDX-License-Identifier: MIT
 
 local TP_OFFSET_FIRST  = {x = 0, y = 0, z = 0}
@@ -13,33 +14,12 @@ local function apply_offset(player, third_person)
 	if not player or not player:is_player() then return end
 	if third_person then
 		player:set_eye_offset(TP_OFFSET_FIRST, TP_OFFSET_THIRD)
+		player:get_meta():set_int("_arch_tp_active", 1)
 	else
 		player:set_eye_offset(TP_OFFSET_FIRST, TP_OFFSET_FIRST)
+		player:get_meta():set_int("_arch_tp_active", 0)
 	end
 end
-
--- Per-frame bone reset: force arms down in third-person to fix raised-hand bug
-local function reset_arms(player)
-	if not player or not player:is_player() then return end
-	-- Force both arm pitch controls to zero rotation (arms at sides)
-	player:set_bone_override("Arm_Left_Pitch_Control", {
-		rotation = { vec = vector.new(0, 0, 0), absolute = true, interpolation = 0.1 }
-	})
-	player:set_bone_override("Arm_Right_Pitch_Control", {
-		rotation = { vec = vector.new(0, 0, 0), absolute = true, interpolation = 0.1 }
-	})
-end
-
-minetest.register_globalstep(function(dtime)
-	for name, tp_active in pairs(player_tp) do
-		if tp_active then
-			local player = minetest.get_player_by_name(name)
-			if player then
-				reset_arms(player)
-			end
-		end
-	end
-end)
 
 minetest.register_on_joinplayer(function(player)
 	-- Default: third-person ON for new joins (user can toggle off)

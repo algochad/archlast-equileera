@@ -480,6 +480,12 @@ mcl_player.register_globalstep (function (player, dtime)
 	end
 
 	mcl_player.position_wielditem (wielded_itemname, wielded_def, player)
+	-- [ARCH-THIRDPERSON] Skip arm bone updates when third-person offset is active
+	-- (arch_thirdperson mod sets _arch_tp_active on player meta)
+	if player:get_meta():get_int("_arch_tp_active") == 1 then
+		set_bone_pos(player, "Arm_Left_Pitch_Control", nil, vector.zero())
+		set_bone_pos(player, "Arm_Right_Pitch_Control", nil, vector.zero())
+	else
 
 	-- controls right and left arms pitch when shooting a bow or blocking
 	if mcl_shields.is_blocking(player) == 2 then
@@ -512,6 +518,7 @@ mcl_player.register_globalstep (function (player, dtime)
 		set_bone_pos(player, "Arm_Left_Pitch_Control", nil, vector.zero())
 		set_bone_pos(player, "Arm_Right_Pitch_Control", nil, vector.zero())
 	end
+	end -- [ARCH-THIRDPERSON] close if/else for arm bone skip
 end)
 
 mcl_player.register_globalstep_slow(function(player)
