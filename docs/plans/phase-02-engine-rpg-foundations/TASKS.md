@@ -23,6 +23,115 @@ cat /tmp/phase1-baseline.txt | grep -E 'frame_time_ms|fps'
 Pass: no output from `git status`, baseline file contains numeric frame time.
 
 ---
+## Task Group 0: Content Bootstrap — VoxeLibre + Shader Mod (30 min)
+
+Do this before any engine work: gives the fork a playable default game and a shader preset.
+Source zips are user-supplied ContentDB downloads — never fetched at build time.
+
+### 0.1. Verify zips
+
+- [ ] Both zips exist; sha256 matches recorded values
+- [ ] Confirm package identity from contents (`mineclone2/game.conf` → VoxeLibre 0.92.3; `voxelibre_shader_preset_port/mod.conf` → name match)
+
+```bash
+sha256sum /home/algochad/Downloads/9e68da81b8.zip /home/algochad/Downloads/6b12075e71.zip
+# Expected:
+# bba1b1040a38114ead311f2834d6260add210b4fec845afc44da524840735f74  9e68da81b8.zip (shader mod, 2.0 KB)
+# 51ea9242aabb1f29575abbfb599c79bcde9435616ea097c0582e11ac1b2b279d  6b12075e71.zip (VoxeLibre 0.92.3, 81 MB)
+unzip -l /home/algochad/Downloads/6b12075e71.zip | head -5   # mineclone2/game.conf visible
+unzip -l /home/algochad/Downloads/9e68da81b8.zip             # voxelibre_shader_preset_port/{mod.conf,init.lua}
+```
+
+Pass: hashes match. Fail: stop, re-download from ContentDB (`Wuzzy/mineclone2` 0.92.3, `QBSteve/voxelibre_shader_preset_port`).
+
+### 0.2. Vendor game into fork
+
+- [ ] Unzip `6b12075e71.zip` so `engine/archlast-luanti/games/mineclone2/game.conf` exists (title `VoxeLibre`)
+- [ ] Directory name stays `mineclone2` — engine `normalizeGameId` maps dir name → gameid, no rename
+- [ ] Confirm fork-commit exclusion: upstream `.gitignore` already has `/games/*` with only `!/games/devtest/` un-ignored, so `games/mineclone2` is ignored by default — verify, do not add new ignore rules unless verification fails
+
+```bash
+REPO_ROOT="$(pwd)"  # must be repo root
+cd /tmp && rm -rf vlstage && mkdir vlstage && cd vlstage
+unzip -o -q /home/algochad/Downloads/6b12075e71.zip
+test -f mineclone2/game.conf && grep -q "title = VoxeLibre" mineclone2/game.conf && echo "GAME OK"
+mkdir -p "$REPO_ROOT/engine/archlast-luanti/games"
+cp -r mineclone2 "$REPO_ROOT/engine/archlast-luanti/games/mineclone2"
+test -f "$REPO_ROOT/engine/archlast-luanti/games/mineclone2/game.conf" && echo "PLACED OK"
+git -C "$REPO_ROOT/engine/archlast-luanti" check-ignore -v games/mineclone2/game.conf && echo "EXCLUDED FROM FORK COMMITS OK"
+# Fallback only if the above prints nothing (i.e. not ignored):
+# echo "games/mineclone2" >> "$REPO_ROOT/.git/modules/engine/archlast-luanti/info/exclude"
+# (submodule `.git` is a gitfile; its real git dir lives under parent `.git/modules/`)
+git -C "$REPO_ROOT/engine/archlast-luanti" status --short && echo "SUBMODULE CLEAN CHECK DONE"
+```
+
+Pass: `check-ignore` prints the matching `.gitignore` rule. Parent `git status --short` shows no `engine/archlast-luanti` modification (untracked-but-ignored content inside a submodule does not dirty the parent pointer).
+
+Files touched: `engine/archlast-luanti/games/mineclone2/**` (untracked, ignored — never committed to fork or parent).
+### 0.3. Vendor shader mod into game mods
+
+- [ ] Unzip `9e68da81b8.zip`; copy `voxelibre_shader_preset_port/` into `engine/archlast-luanti/games/mineclone2/mods/`
+- [ ] Why here, not repo-root `mods/` or `~/.luanti/mods`: game-bundled mods auto-load via `addGameMods`; addon paths need per-world `load_mod_<name>` opt-in
+- [ ] Mod is game-agnostic (`init.lua` only calls `player:set_lighting` on join) — no edits needed
+
+```bash
+REPO_ROOT="$(pwd)"  # must be repo root
+cd /tmp && rm -rf shstage && mkdir shstage && cd shstage
+unzip -o -q /home/algochad/Downloads/9e68da81b8.zip
+test -f voxelibre_shader_preset_port/mod.conf && echo "MOD OK"
+cp -r voxelibre_shader_preset_port "$REPO_ROOT/engine/archlast-luanti/games/mineclone2/mods/"
+test -f "$REPO_ROOT/engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port/init.lua" && echo "MOD PLACED OK"
+```
+
+Files touched: `engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port/**` (untracked, covered by parent ignore).
+### 0.4. Record provenance
+
+- [ ] Append ContentDB provenance to `dependencies/mods.lock` (package, version, sha256, licenses)
+
+```bash
+cat >> dependencies/mods.lock << 'EOF'
+
+[content.mineclone2]
+package = Wuzzy/mineclone2
+version = 0.92.3
+zip_sha256 = 51ea9242aabb1f29575abbfb599c79bcde9435616ea097c0582e11ac1b2b279d
+license = GPLv3
+path = engine/archlast-luanti/games/mineclone2
+
+[content.voxelibre_shader_preset_port]
+package = QBSteve/voxelibre_shader_preset_port
+zip_sha256 = bba1b1040a38114ead311f2834d6260add210b4fec845afc44da524840735f74
+license = MIT
+path = engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port
+EOF
+```
+
+Files touched: `dependencies/mods.lock` (tracked, committed).
+
+### 0.5. Wire `--gameid` / `--third-person` into `run-dev.sh`, then smoke reference game
+
+- [ ] Extend `scripts/run-dev.sh` arg parsing: `--gameid <id>` (default `devtest` — preserves current behavior), `--third-person` (warn until Group B lands, then standard smoke)
+- [ ] No-arg path stays `exec "$BIN"`; add `exec "$BIN" --gameid "$GAMEID"` when a non-default gameid is given without `--smoke`
+- [ ] Server launch line becomes `--gameid "$GAMEID"` instead of hardcoded `devtest`
+- [ ] Smoke both games; readiness loop (already 60s) covers first-time VoxeLibre mapgen
+
+```bash
+# After editing scripts/run-dev.sh:
+bash -n scripts/run-dev.sh && echo "SYNTAX OK"
+scripts/run-dev.sh --smoke                     # regression: devtest still green
+scripts/run-dev.sh --smoke --gameid mineclone2 # reference game smoke
+# VL log check (same $LOG=/tmp/archlast-smoke.log; check right after each run — second run overwrites):
+grep -iE 'moderror|could not be found|assertion failed|segfault' /tmp/archlast-smoke.log && echo "FAIL: content errors" || echo "VL LOG CLEAN"
+```
+
+Pass: devtest smoke unchanged, mineclone2 smoke reaches `listening on`, both logs clean.
+
+Files touched: `scripts/run-dev.sh` (tracked, committed with Phase 2 work).
+
+Time estimate: 30 min total for Group 0.
+
+---
+
 
 ## Task Group A: Lua Capability Probe + Gap Documentation (30 min)
 

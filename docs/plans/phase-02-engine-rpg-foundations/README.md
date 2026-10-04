@@ -6,9 +6,9 @@ Third-person camera, character controller, animation state machine, and input ab
 
 Deliver a usable-from-Lua third-person player experience: camera follows the local player with collision avoidance and shoulder offset; character controller supports locomotion states; animation state machine drives skeletal transitions; input is action-mapped and gamepad-ready. All gameplay code interacts through stable Lua bindings; C++ internals remain opaque.
 
-## Non-goals
-
 - RPG stats, attributes, classes, skills, spells (Phase 4).
+- Vendored reference content is play-only: no VoxeLibre mod edits, no upstreaming, no re-licensing (see Content bootstrap).
+
 - Combat damage calculation, hit registration, status effects (Phase 4).
 - Item/equipment system, inventory UI (Phase 5+).
 - Rendering pipeline overhaul, shader authoring, post-processing.
@@ -221,6 +221,40 @@ All Phase 2 log lines use prefixed tags for grep-ability:
 
 Log level: `infostream` for state changes, `warningstream` for fallbacks/recoveries, `errorstream` for API misuse and assertion failures. Never log per-frame data.
 
+## Content bootstrap (reference content, not the product game)
+
+Playable default content comes from two ContentDB packages, vendored locally — never fetched at build time:
+
+| Zip | ContentDB package | Type | Size | License |
+|---|---|---|---|---|
+|`6b12075e71.zip` (sha256 `51ea9242…b279d`)| [`Wuzzy/mineclone2`](https://content.luanti.org/packages/Wuzzy/mineclone2) 0.92.3 | full game (220 mods, `mineclone2/` root) | 81 MB zip / ~120 MB unpacked, 6692 files | GPLv3 (`LICENSE.txt` at game root) |
+|`9e68da81b8.zip` (sha256 `bba1b104…c735f74`)| [`QBSteve/voxelibre_shader_preset_port`](https://content.luanti.org/packages/QBSteve/voxelibre_shader_preset_port) | single mod (`voxelibre_shader_preset_port/`: `mod.conf`, `init.lua`, `README.md`, `LICENSE`) | 2.0 KB | MIT |
+
+Minimum engine for VoxeLibre 0.92.3 is Luanti 5.10+ (ContentDB release metadata); our 5.17.0 fork satisfies this. The zip root dirs are ContentDB naming (`mineclone2/`); the directory name doubles as the gameid via `normalizeGameId`, so no rename needed.
+
+### Placement (follows engine game discovery)
+
+Engine game discovery (`src/content/subgames.cpp:133-165`) scans `path_share/games/` and `path_user/games/` for dirs containing `game.conf`. With `RUN_IN_PLACE`, both resolve to the submodule root (`src/porting.cpp:681-694`), so content lives **inside** the fork at:
+
+```text
+engine/archlast-luanti/games/mineclone2/          # full game: game.conf, menu/, mods/, minetest.conf
+engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port/  # shader mod drops into game mods
+```
+
+Do NOT use `mods/` at repo root or `~/.luanti/mods` — those are addon paths requiring `load_mod_<name>` opt-in per world (`src/content/mod_configuration.cpp:118-165`). Game-bundled mods load automatically via `addGameMods` (`mods.cpp:21`).
+
+The shader mod's `init.lua` calls `player:set_lighting({...})` on join — game-agnostic, safe to ship inside `mineclone2/mods/`. Its name `voxelibre_shader_preset_port` collides with nothing in the 220-mod game tree.
+
+### Licensing note
+
+GPLv3 game content sits inside the `engine/archlast-luanti/` submodule working tree but is untracked build-adjacent content, NOT a source edit: upstream `.gitignore` already ignores `/games/*` except `!/games/devtest/`, so `games/mineclone2` never enters fork commits — the task verifies this with `check-ignore` and only falls back to `.git/info/exclude` if verification fails. Record provenance in `dependencies/mods.lock` + game-root `LICENSE.txt` attribution. Phase 3's original `game/arch_rpg/` remains the product game under the project license; VoxeLibre is reference/playable content only.
+### Play commands after bootstrap
+
+```bash
+bin/archlast --gameid mineclone2          # main menu: VoxeLibre worlds
+scripts/run-dev.sh --smoke --gameid mineclone2  # headless server smoke on reference game
+```
+
 ## Exit criteria
 
 All must pass for Phase 2 completion:
@@ -233,3 +267,4 @@ All must pass for Phase 2 completion:
 6. Frame time regression ≤10% vs Phase 1 baseline.
 7. All four feature branches squash-merged to `main`; no dangling branches.
 8. Every `engine-patches/*/README.md` contains probe + gap + decision + signatures.
+9. Content bootstrap green: `games/mineclone2/game.conf` present, `scripts/run-dev.sh --smoke --gameid mineclone2` exits 0 with no `ModError`/`could not be found` in log.

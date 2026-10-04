@@ -1,7 +1,28 @@
 # Phase 2 Acceptance — Engine RPG Foundations Testable
 
 All checks runnable in order. Phase 2 passes only if all green.
-Copy-paste each block into a terminal at repo root.
+
+## A0. Content bootstrap (reference game + shader mod)
+
+Vendored ContentDB content is in place and boots headless.
+
+```bash
+# Placement
+test -f engine/archlast-luanti/games/mineclone2/game.conf && echo "GAME PLACED"
+grep -q "title = VoxeLibre" engine/archlast-luanti/games/mineclone2/game.conf && echo "GAME ID OK"
+test -f engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port/mod.conf && echo "SHADER MOD PLACED"
+grep -q "load_mod_" engine/archlast-luanti/games/mineclone2/game.conf 2>/dev/null && echo "WARN: unexpected load_mod" || echo "NO STALE LOAD_MOD"
+
+# Provenance recorded
+grep -q "content.mineclone2" dependencies/mods.lock && echo "PROVENANCE OK" || echo "FAIL: provenance missing"
+
+# Headless boot on reference game via run-dev.sh (Group 0 wires --gameid; 60s loop covers first-time mapgen)
+scripts/run-dev.sh --smoke --gameid mineclone2
+test $? -eq 0 && echo "VL SMOKE EXIT OK" || echo "FAIL: vl smoke exit"
+grep -iE 'moderror|could not be found|assertion failed|segfault' /tmp/archlast-smoke.log && echo "FAIL: content errors" || echo "A0 PASS: Content bootstrap green"
+```
+
+Pass: game + mod placed, provenance in lock file, `run-dev.sh --smoke --gameid mineclone2` exits 0, no `ModError`/`could not be found` in `/tmp/archlast-smoke.log`.
 
 ## A1. Lua API surface callable from console
 
@@ -190,6 +211,7 @@ Any red check = fix before declaring Phase 2 complete. Record failures in `docs/
 cat >> docs/plans/phase-02-engine-rpg-foundations/RESULTS.md << EOF
 ## $(date -u +%Y-%m-%dT%H:%M:%SZ)
 
+- A0: <PASS|FAIL> — <notes>
 - A1: <PASS|FAIL> — <notes>
 - A2: <PASS|FAIL> — <notes>
 - A3: <PASS|FAIL> — <notes>
@@ -201,4 +223,4 @@ cat >> docs/plans/phase-02-engine-rpg-foundations/RESULTS.md << EOF
 EOF
 ```
 
-All six checks green → Phase 2 complete. Proceed to Phase 3.
+All seven checks green → Phase 2 complete. Proceed to Phase 3.
