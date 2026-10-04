@@ -5,3 +5,24 @@ commit = c0e6812b1a4260bb25a1f606f70f55f4962bb97d
 upstream_branch = master
 # TODO: swap repo to algochad/archlast-luanti fork URL once created
 # TODO: run `git -C engine/archlast-luanti remote set-url origin <FORK_URL>` after fork creation
+
+[content.arch_base.mineclonia]
+role = merge-base
+url = https://codeberg.org/mineclonia/mineclonia.git
+branch = main
+sha = 85029767688df9c3ca95c9cff3b082c0a83f6704
+license = GPLv3
+
+[content.arch_base.voxelibre]
+role = donor
+url = https://git.minetest.land/VoxeLibre/VoxeLibre.git
+branch = master
+sha = 2373982f19f9b5d89cd2e3146ad7749876319e15
+license = GPLv3
+
+[content.arch_base.shader_preset]
+role = first-class-mod
+url = https://codeberg.org/TheUnknownHack3r/voxelibre_shader_preset_port.git
+branch = master
+sha = cf0cf6198ddd20b239ac9dbdb39e6facdd09e7b9
+license = MIT
