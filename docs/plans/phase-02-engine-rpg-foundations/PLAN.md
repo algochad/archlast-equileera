@@ -8,7 +8,7 @@ Plan (no code) the `game/arch_base/` mechanics core — severed-history merge of
 
 ## Scope
 
-- Base-game plan: fork sources table (Mineclonia `main`@`85029767` base / VoxeLibre `master`@`2373982f` donor / shader `master`@`cf0cf619`), merge direction, `game/arch_base/` layout, `LUANTI_GAME_PATH` discovery, provenance format, donor-evaluation + smoke procedure (TASKS.md Group 0, plan-only — execution later)
+- Base-game execution: fork sources table (Mineclonia `main`@`85029767` base / VoxeLibre `master`@`2373982f` donor / shader `master`@`cf0cf619`), merge direction, `game/arch_base/` layout, `LUANTI_GAME_PATH` discovery, provenance format, donor-evaluation + smoke procedure (TASKS.md Group 0, executed in this phase)
 - `engine-patches/{camera,animation,input,gameplay-api}/` design notes
 - C++ in `engine/archlast-luanti/`: `arch_engine.camera.*`, `arch_engine.animation.*`, `arch_engine.input.*`, `arch_engine.player.*` (minimal bindings per spec §10)
 - Branches: `feature/camera`, `feature/animation`, `feature/input`, `feature/rpg-api` — one concern per branch, squash-merge to `main`
@@ -16,7 +16,7 @@ Plan (no code) the `game/arch_base/` mechanics core — severed-history merge of
 
 ## Non-goals
 
-No stats/classes/skills (Phase 4). No rendering overhaul. No asset finalization. No `game/arch_base/` implementation in this phase (plan only); no `upstream` remotes on game content ever.
+No stats/classes/skills (Phase 4). No rendering overhaul. No asset finalization. No `upstream` remotes on game content ever.
 
 ## Tasks
 

@@ -23,9 +23,9 @@ cat /tmp/phase1-baseline.txt | grep -E 'frame_time_ms|fps'
 Pass: no output from `git status`, baseline file contains numeric frame time.
 
 ---
-## Task Group 0: Base Game `arch_base` — Merge Plan (plan-only, no execution)
+## Task Group 0: Base Game `arch_base` — Merge Execution
 
-Outcome: a decision-complete merge spec. No cloning, no `game/arch_base/` code, no script edits in this phase — execution happens later solely from this spec. Engine Groups A+ proceed against `devtest` independently.
+Outcome: merged severed-history game at `game/arch_base/`, wired into `scripts/run-dev.sh`, provenance recorded in `dependencies/mods.lock`. Engine Groups A+ proceed against `devtest` independently.
 
 ### 0.1. Fork sources (locked, verified 2026-10-04)
 

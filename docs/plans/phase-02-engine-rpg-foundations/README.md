@@ -6,7 +6,7 @@ Base-game mechanics core (`game/arch_base/`, planned here from Mineclonia + Voxe
 
 Two tracks, in order:
 
-1. **Base game `arch_base`** (mechanics core, plan-only in this phase): fork Mineclonia + VoxeLibre + shader-preset sources with severed history into `game/arch_base/`, merge to a single Mineclonia-based tree, ship the shader preset as a first-class game mod. This becomes the mechanics system every later phase builds on.
+1. **Base game `arch_base`** (mechanics core, executed in this phase): fork Mineclonia + VoxeLibre + shader-preset sources with severed history into `game/arch_base/`, merge to a single Mineclonia-based tree, ship the shader preset as a first-class game mod. This becomes the mechanics system every later phase builds on.
 2. **Engine RPG foundations**: usable-from-Lua third-person player experience — camera follows the local player with collision avoidance and shoulder offset; character controller supports locomotion states; animation state machine drives skeletal transitions; input is action-mapped and gamepad-ready. All gameplay code interacts through stable Lua bindings; C++ internals remain opaque.
 
 No implementation of the base-game merge in this phase — Group 0 below plans it decision-complete; execution happens later.
@@ -227,7 +227,7 @@ All Phase 2 log lines use prefixed tags for grep-ability:
 
 Log level: `infostream` for state changes, `warningstream` for fallbacks/recoveries, `errorstream` for API misuse and assertion failures. Never log per-frame data.
 
-## Base game `arch_base` (mechanics core — plan-only this phase)
+## Base game `arch_base` (mechanics core — executed in this phase)
 
 The product's mechanics system is a merged single game hosted in this repo. Three upstream sources, all severed-history forks (no `upstream` remote, no future pulls — one-way snapshot; `dependencies/mods.lock` records exact SHAs for provenance):
 

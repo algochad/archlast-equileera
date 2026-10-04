@@ -2,9 +2,9 @@
 
 All checks runnable in order. Phase 2 passes only if all green.
 
-## A0. Base game `arch_base` (execution phase — plan-only now)
+## A0. Base game `arch_base` (executed in this phase)
 
-Merged severed-history game is in place and boots headless. This gate is specified here but runs at execution time, not in this phase.
+Merged severed-history game is in place and boots headless. This gate is verified as part of Phase 2 acceptance.
 
 ```bash
 # Placement
