@@ -66,6 +66,12 @@ Also: `README.md` copied from Mineclonia root (not in original layout) because `
 | vl_tridents | mcl_tridents | NAME |
 | walkover | mcl_walkover | NAME |
 
+## Bushy leaves
+
+Upstream: https://codeberg.org/EmoryNB/bushy_leaves @ f2a608053404ca050ce430d0b8f2ed32236c2172 (master, AGPLv3).
+8 files -> mods/ENVIRONMENT/bushy_leaves/ (init.lua, mod.conf, settingtypes.txt, README.md, LICENSE byte-identical; models/*.obj + models/license.txt byte-identical; 3 screenshots dropped, ~2MB).
+Mesh override (`drawtype=mesh`, `waving=2`, via `register_on_mods_loaded`) applies to every registered node matching `*leaves*` (except `*with_leaves*`) or `*needles*`; covers arch_base `mcl_trees:leaves_*`, `mcl_core:acacialeaves`, azalea/mangrove variants. `fix-collision-box-2` branch deliberately NOT taken: it drops the mesh approach for nodeboxes and deletes the model files.
+
 ## Shader preset
 
 4 files -> mods/arch_shader_preset/; mod.conf rewritten (name=arch_shader_preset, title=Arch Shader Preset, depends=[]); init.lua/README.md/LICENSE byte-identical.

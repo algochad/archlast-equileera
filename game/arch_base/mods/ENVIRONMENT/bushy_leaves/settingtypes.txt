@@ -1,0 +1,4 @@
+# This defines the mesh that will be used for bushy leaves.
+# - `full` mesh is identical to the nodebox that was available in the original mod.
+# - `cheap` mesh has been simplified for better performance.
+bushy_leaves_mesh (Bushy leaves mesh type) enum full full,cheap

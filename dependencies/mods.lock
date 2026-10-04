@@ -27,6 +27,16 @@ branch = master
 sha = cf0cf6198ddd20b239ac9dbdb39e6facdd09e7b9
 license = MIT
 
+[content.arch_base.bushy_leaves]
+role = first-class-mod
+url = https://codeberg.org/EmoryNB/bushy_leaves.git
+branch = master
+sha = f2a608053404ca050ce430d0b8f2ed32236c2172
+license = AGPLv3
+integration = byte-identical-vendor-into-mods-ENVIRONMENT-bushy_leaves
+upstream_optional_depends = default, mcl_core, nc_tree, rp_default
+note = screenshots dropped (~2MB); init.lua/mod.conf/settingtypes.txt/models byte-identical; mesh override applies to all *leaves*/*needles* nodes via on_mods_loaded
+
 [texturepack.pixel-perfection]
 role = texture-pack
 url = https://github.com/minetest-texture-packs/Pixel-Perfection

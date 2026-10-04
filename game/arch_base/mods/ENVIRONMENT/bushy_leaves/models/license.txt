@@ -1,0 +1,4 @@
+Models:
+(c) 2022 Singularis <singularis@volny.cz>
+License: GNU Affero General Public License 3.0
+Models are based on the original node boxes of Bushy Leaves mod.
