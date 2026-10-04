@@ -92,7 +92,6 @@ function armor_hover.global_step()
 
         local player_name   = player:get_player_name()
         local player_state  = armor_hover.player_states[player_name]
-	if not player_state.airborne_timer then player_state.airborne_timer = 0 end
         local player_meta   = player:get_meta()
         local pos           = player:get_pos()
         local controls      = player:get_player_control()
@@ -109,28 +108,17 @@ function armor_hover.global_step()
 		-- Additionally, if the check_fly option is on,
 		-- we reuse the logic from the 3D Armor: Fly & Swim, that is,
 		-- a player is not considered flying if not above flyable nodes.
-		-- PATCH: require sustained airborne state so fly priv doesn't force hover anim while grounded.
-		-- Pure geometry check with grid scan for slopes/stairs + airborne timer to prevent flash.
-		local function is_walkable_at(dx, dy, dz)
-			local n = core.get_node_or_nil({x = pos.x + dx, y = pos.y + dy, z = pos.z + dz})
-			if not n then return false end
-			local def = core.registered_nodes[n.name]
-			return def and def.walkable
-		end
-		-- Check grid around feet (catches slopes/stairs where center is air but edge is solid)
-		local has_ground = is_walkable_at(0, -0.05, 0) or is_walkable_at(0, -0.5, 0) or
-			is_walkable_at(0, -1.0, 0) or
-			is_walkable_at(0.25, -0.5, 0) or is_walkable_at(-0.25, -0.5, 0) or
-			is_walkable_at(0, -0.5, 0.25) or is_walkable_at(0, -0.5, -0.25)
-		-- Update airborne timer
-		if has_ground then
-			player_state.airborne_timer = 0
-		else
-			player_state.airborne_timer = player_state.airborne_timer + dtime
-		end
-		-- Only consider flying if airborne for > 0.2s (prevents flash on stairs/steps)
-		local is_grounded = has_ground or player_state.airborne_timer < 0.2
-		local fly = privs.fly and not is_grounded and
+		-- PATCH: require airborne state so fly priv doesn't force hover anim while grounded.
+		-- vel.y > -2.0 covers stair stepping and 1-block drops (terminal walk speed ~4-5).
+		-- Check 0.5 and 1.5 nodes below feet for walkable ground (slopes/stairs have
+		-- air at -0.5 but solid at -1.5).
+		local node_below_05 = core.get_node_or_nil({x = pos.x, y = pos.y - 0.5, z = pos.z})
+		local node_below_15 = core.get_node_or_nil({x = pos.x, y = pos.y - 1.5, z = pos.z})
+		local ndef_05 = node_below_05 and core.registered_nodes[node_below_05.name]
+		local ndef_15 = node_below_15 and core.registered_nodes[node_below_15.name]
+		local has_ground = (ndef_05 and ndef_05.walkable) or (ndef_15 and ndef_15.walkable)
+		local is_grounded = vel.y > -2.0 and has_ground
+		local fly           = privs.fly and not is_grounded and
 			(not check_fly or armor_hover.nodes_down_flyable(pos, check_fly_dist))
 
         local attached_to   = armor_hover.game_backend:is_attached(player)
