@@ -1,7 +1,6 @@
 -- arch_thirdperson - Improved third-person camera
 -- Based on ctf-improvedthirdperson by fancyfinn9
 -- Adapted: no ctf_settings dependency, uses native set_eye_offset + chat toggle
--- Patches mcl_player/animations.lua to force arms down when _arch_tp_active meta == 1
 -- SPDX-License-Identifier: MIT
 
 local TP_OFFSET_FIRST  = {x = 0, y = 0, z = 0}
@@ -14,10 +13,8 @@ local function apply_offset(player, third_person)
 	if not player or not player:is_player() then return end
 	if third_person then
 		player:set_eye_offset(TP_OFFSET_FIRST, TP_OFFSET_THIRD)
-		player:get_meta():set_int("_arch_tp_active", 1)
 	else
 		player:set_eye_offset(TP_OFFSET_FIRST, TP_OFFSET_FIRST)
-		player:get_meta():set_int("_arch_tp_active", 0)
 	end
 end
 
