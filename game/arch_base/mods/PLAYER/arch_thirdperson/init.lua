@@ -1,10 +1,12 @@
 -- arch_thirdperson - Improved third-person camera
 -- Based on ctf-improvedthirdperson by fancyfinn9
 -- Adapted: no ctf_settings dependency, uses native set_eye_offset + chat toggle
+-- Note: raised left arm in third-person is Mineclonia's default idle animation pose
+-- (baked into character.b3d keyframes, not fixable via Lua bone overrides alone)
 -- SPDX-License-Identifier: MIT
 
-local TP_OFFSET_FIRST  = {x = 0, y = 0, z = 0}
-local TP_OFFSET_THIRD  = {x = 8, y = 4, z = -1}
+local TP_OFFSET_FIRST = {x = 0, y = 0, z = 0}
+local TP_OFFSET_THIRD = {x = 8, y = 4, z = -1}
 
 -- Per-player state: true = third-person offset active
 local player_tp = {}
