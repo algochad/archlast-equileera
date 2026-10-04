@@ -18,6 +18,29 @@ local function apply_offset(player, third_person)
 	end
 end
 
+-- Per-frame bone reset: force arms down in third-person to fix raised-hand bug
+local function reset_arms(player)
+	if not player or not player:is_player() then return end
+	-- Force both arm pitch controls to zero rotation (arms at sides)
+	player:set_bone_override("Arm_Left_Pitch_Control", {
+		rotation = { vec = vector.new(0, 0, 0), absolute = true, interpolation = 0.1 }
+	})
+	player:set_bone_override("Arm_Right_Pitch_Control", {
+		rotation = { vec = vector.new(0, 0, 0), absolute = true, interpolation = 0.1 }
+	})
+end
+
+minetest.register_globalstep(function(dtime)
+	for name, tp_active in pairs(player_tp) do
+		if tp_active then
+			local player = minetest.get_player_by_name(name)
+			if player then
+				reset_arms(player)
+			end
+		end
+	end
+end)
+
 minetest.register_on_joinplayer(function(player)
 	-- Default: third-person ON for new joins (user can toggle off)
 	player_tp[player:get_player_name()] = true
