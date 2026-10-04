@@ -1,13 +1,13 @@
-# Phase 2 — Engine RPG Foundations
+# Phase 2 — Engine RPG Foundations (Lua-mod approach, no engine C++ changes)
 
-Base-game mechanics core (`game/arch_base/`, planned here from Mineclonia + VoxeLibre + shader preset) plus engine-side third-person camera, character controller, animation state machine, and input abstraction exposed to Lua. This phase establishes the **engine-side** primitives that Phase 3 and Phase 4 consume exclusively through `arch_engine.*` Lua APIs.
+Base-game mechanics core (`game/arch_base/`, planned here from Mineclonia + VoxeLibre + shader preset) plus **Lua-mod** third-person camera, character controller, animation state machine, and input abstraction built only on the stock Luanti Lua API. The engine submodule stays pinned at upstream `c0e6812b1` (5.17.0) with zero C++ diff; previous `src/archlast/` work has been reverted. Later phases consume the Lua `arch_*` game-mod APIs.
 
 ## Goal
 
 Two tracks, in order:
 
 1. **Base game `arch_base`** (mechanics core, executed in this phase): fork Mineclonia + VoxeLibre + shader-preset sources with severed history into `game/arch_base/`, merge to a single Mineclonia-based tree, ship the shader preset as a first-class game mod. This becomes the mechanics system every later phase builds on.
-2. **Engine RPG foundations**: usable-from-Lua third-person player experience — camera follows the local player with collision avoidance and shoulder offset; character controller supports locomotion states; animation state machine drives skeletal transitions; input is action-mapped and gamepad-ready. All gameplay code interacts through stable Lua bindings; C++ internals remain opaque.
+2. **RPG foundations as Lua game mods**: usable-from-Lua third-person player experience — camera offsets via `set_eye_offset` with `core.raycast` collision pull-in; locomotion states via `get_player_control` + `get_velocity` + `set_physics_override`; animation states via `set_animation`/`play_animation` + `set_bone_override`; action-mapped input over `get_player_control` (+ `movement_x`/`movement_y` sticks). All gameplay code lives in `game/arch_base/mods/`; engine internals remain untouched upstream code.
 
 No implementation of the base-game merge in this phase — Group 0 below plans it decision-complete; execution happens later.
 
@@ -34,166 +34,134 @@ All must be green before starting any Phase 2 task:
 
 If any entry criterion fails, stop and fix Phase 1 first.
 
-## Architecture decisions
+## Architecture decisions (Lua-only; stock API mapping)
 
-Per spec §9, each feature gets an explicit **Lua probe → C++ API → internals** decision recorded in its `engine-patches/<feature>/README.md`:
+Each feature gets an explicit **Lua probe → Lua implementation** decision recorded in its `engine-patches/<feature>/README.md` (directory name is historical — no C++ is patched). Reference: `docs/archlast-luanti-moding-docs/modding-docs.md`.
 
-| Feature | Decision rationale | Binding layer |
+| Feature | Stock Lua API (doc refs) | Lua approach |
 |---|---|---|
-| Camera distance/offset/smoothing | Luanti's built-in `set_camera_mode` lacks collision raycast + shoulder offset; probe documents gap | New C++ `CameraManager` wrapper → Lua `arch_engine.camera.*` |
-| Camera yaw/pitch limits | Existing API exposes raw angles but no clamping or target-lock hook | Extend wrapper above |
-| Character controller states | Luanti `PlayerSAO` has walk/jump but no sprint/dodge/knockback/swim state enum | New C++ `CharacterController` component → Lua `arch_engine.player.*` |
-| Animation state machine | Luanti `GenericCAO` plays single animations; no layered FSM or transition blending | New C++ `AnimationStateMachine` → Lua `arch_engine.animation.*` |
-| Model attachment points | Bone names are asset-specific; need registry + validation | Lua-configurable table read by C++ attachment system |
-| Input action mapping | Luanti key binding is keycode-only, no axis/gamepad/action concept | New C++ `InputActionMap` → Lua `arch_engine.input.*` |
-| Entity component queries | Gameplay needs `get_entity_by_id`, `has_component`, etc. | Thin Lua wrappers over existing `ServerEnvironment` |
-| Render debug overlays | Camera rays, state labels needed during dev only | Conditional C++ debug draw, Lua toggle |
+| Camera offsets | `set_eye_offset(first, third_back, third_front)` (L9679), `get_eye_offset` (L9688) | Per-player offsets; shoulder feel via small X/Y third-person values within clamp `[-10,-10,-5]`..`[10,15,5]` |
+| Camera mode lock | `set_camera({mode})` / `get_camera()` (L9689-9698); modes `any`/`first`/`third`/`third_front` | Lock or force third-person per gameplay state; `nil` (≥5.16) resets to defaults |
+| Camera collision | `core.raycast(pos1, pos2, objects, liquids)` / `Raycast(...)` (L7249, L9835-9881), `core.line_of_sight` (L7243) | Each tick raycast head→desired camera pos; pull `set_eye_offset` in on hit (fallback: centered offset after consecutive hits) |
+| Locomotion states | `get_player_control()` incl. `movement_x`/`movement_y` (L9350-9368), `get_velocity`/`add_velocity` (L8993-9006, needs `direct_velocity_on_players` 5.4+), `set_physics_override`/`get_physics_override` (L9383-9431) | Lua FSM in `core.register_globalstep` (L6607): sprint=dodge via speed multipliers, knockback via `add_velocity`, swim/ground from node + velocity checks |
+| Animation states | old `set_animation(frame_range, frame_speed, frame_blend, frame_loop)` + `set_animation_frame_speed` (L9159-9183); new `play_animation`/`update_animation`/`stop_animation`/`get_animations` tracks (L9185-9225, 5.17+); bones `set_bone_override`/`get_bone_override(s)` in radians (L9078-9098, deprecated `set_bone_position` degrees L9064-9077) | Lua state machine maps game states → frame ranges (e.g. Mineclonia `stand` 0-79) with `frame_blend` crossfade; bone posing via absolute overrides with `interpolation` seconds |
+| Input action map | `get_player_control()` keys `up/down/left/right/jump/aux1/sneak/dig/place/LMB/RMB/zoom` + `movement_x/y` incl. joystick (L9350-9368) | Lua action/axis tables over control fields; `movement_x/y` cover sticks; profiles persisted via mod storage (`get_mod_storage`, L8129) or world files (`get_worldpath`, L6150) |
+| Entity queries | `get_pos`/`set_pos`, `get_rotation`/`set_rotation`, `get_look_dir` (L8983-8992, L9240-9296) | Thin Lua wrappers; no component system in Phase 2 (`has_component` returns false / deferred) |
+| Render/debug + timing | `hud_add`/`hud_change`/`hud_remove` (L9432-9438), `core.add_particle(s)` (L7984-8006), `core.get_us_time` (L4683), `core.log` (L6490), join/leave callbacks (L6682-6688) | HUD state labels, particle markers, us-time frame timing; `core.log` with `[ARCH-*]` tags |
 
-**Rule**: if Lua can achieve ≥80% of the requirement with existing APIs, document the gap and defer C++ work. If not, implement the minimal C++ surface and expose it. Never expose internal IrrlichtMt or Luanti class pointers to Lua.
+**Rule**: stock Lua API only. If a requirement cannot be met with the API above, record it as a deferred gap in the feature README — never patch the engine.
 
-## Lua API surface
+## Lua API surface (game mods, `arch_*` namespace)
 
-All functions live under `arch_engine.*`. Tables are passed by reference; vectors use `{x,y,z}` tables. Defaults shown after `=`.
+All functions live in game Lua mods under `game/arch_base/mods/` (mod name TBD). Tables passed by reference; vectors use `{x,y,z}` tables. Defaults shown after `=`. The old `arch_engine.*` C++ namespace is retired — same capability, pure Lua.
 
-### `arch_engine.camera`
+### `arch_camera` (Lua; `set_eye_offset` + raycast)
 
 ```lua
-arch_engine.camera.set_distance(distance: number = 5.0)          -- clamp [1.0, 20.0]
-arch_engine.camera.get_distance() -> number
-arch_engine.camera.set_shoulder_offset(offset: {x,y,z} = {0.8, 0.3, 0})
-arch_engine.camera.get_shoulder_offset() -> {x,y,z}
-arch_engine.camera.set_smoothing(factor: number = 0.15)          -- lerp alpha per frame, [0.01, 1.0]
-arch_engine.camera.set_yaw_limits(min: number = -180, max: number = 180)
-arch_engine.camera.set_pitch_limits(min: number = -80, max: number = 80)
-arch_engine.camera.set_zoom_range(near: number = 2.0, far: number = 12.0)
-arch_engine.camera.enable_collision(enable: boolean = true)
-arch_engine.camera.set_target_lock(entity_id: number | nil)      -- nil = unlock
-arch_engine.camera.get_ray_hit() -> {pos: {x,y,z}, normal: {x,y,z}, entity: number?} | nil
-arch_engine.camera.force_update()                                -- skip smoothing this frame
+arch_camera.set_offset(player, first, third_back, third_front)  -- thin wrapper over player:set_eye_offset
+arch_camera.get_offset(player) -> first, third_back, third_front -- via player:get_eye_offset
+arch_camera.set_shoulder(offset: {x,y,z} = {x=8, y=4, z=-1})     -- stored preset, applied as third_back
+arch_camera.lock_mode(player, mode)                             -- player:set_camera({mode="third"}) / nil reset
+arch_camera.enable_collision(enable: boolean = true)            -- raycast pull-in on/off
+arch_camera.poll(player, dtime)                                 -- per-tick: core.raycast head→desired, shrink offset on hit
 ```
 
-### `arch_engine.animation`
+Limits (engine-enforced): third-person offsets clamped to `[-10,-10,-5]`..`[10,15,5]`; engine F5 camera distance is fixed — "distance/zoom/smoothing" are approximated by offset magnitude + per-tick lerp in Lua. No terrain clip: pull-in on first ray hit; centered fallback after consecutive hits.
+
+### `arch_anim` (Lua; `set_animation` FSM + `set_bone_override`)
 
 ```lua
-arch_engine.animation.register_state(name: string, config: {
-    animation: string,           -- animation name from model
+arch_anim.register_state(name: string, config: {
+    range: {x=start_frame, y=end_frame},  -- model frames, e.g. Mineclonia stand 0-79
     loop: boolean = true,
-    speed: number = 1.0,
-    blend_time: number = 0.15,   -- seconds to crossfade from previous state
-    priority: number = 0,        -- higher overrides lower
-    tags: string[] = {},         -- e.g. {"locomotion", "grounded"}
+    speed: number = 30,                   -- frame_speed
+    blend: number = 0.15,                 -- frame_blend seconds crossfade
 })
-arch_engine.animation.set_state(entity_id: number, state_name: string)
-arch_engine.animation.get_state(entity_id: number) -> string
-arch_engine.animation.set_speed_multiplier(entity_id: number, mult: number = 1.0)
-arch_engine.animation.trigger_event(entity_id: number, event_name: string)
-arch_engine.animation.on_transition(callback: function(entity_id, from, to))
-arch_engine.animation.list_states() -> string[]
+arch_anim.set_state(player, state_name: string)                 -- player:set_animation(range, speed, blend, loop)
+arch_anim.get_state(player) -> string
+arch_anim.set_speed(player, mult: number)                       -- player:set_animation_frame_speed
+arch_anim.pose_bone(player, bone, rot_rad_vec)                  -- player:set_bone_override({rotation={vec, absolute=true, interpolation=0.1}})
+arch_anim.on_transition(callback: function(player, from, to))
+arch_anim.list_states() -> string[]
 ```
 
-Built-in states registered at engine init: `idle`, `walk`, `run`, `sprint`, `jump`, `fall`, `land`, `attack`, `block`, `dodge`, `hit`, `death`, `cast`. Transitions are tag-driven: `grounded→airborne` triggers jump/fall; `locomotion→idle` on zero input.
+Built-in states driven from `get_player_control` + velocity: `idle`, `walk`, `run`, `sprint`, `jump`, `fall`, `land`, `attack`, `block`, `dodge`, `hit`, `death`, `cast`. (glTF `play_animation` tracks available on 5.17+ clients; `.b3d`/`.x` use single track via `set_animation`.)
 
-### `arch_engine.player`
+### `arch_player` (Lua; control + velocity + physics overrides)
 
 ```lua
-arch_engine.player.set_controller_state(state: string)           -- walk|run|sprint|jump|fall|swim|dodge|knockback
-arch_engine.player.get_controller_state() -> string
-arch_engine.player.set_move_speed(state: string, speed: number)
-arch_engine.player.apply_knockback(direction: {x,y,z}, force: number, duration: number)
-arch_engine.player.is_grounded() -> boolean
-arch_engine.player.get_velocity() -> {x,y,z}
-arch_engine.player.set_swim_depth(threshold: number = 0.6)       -- fraction of node height
+arch_player.get_state(player) -> string                          -- walk|run|sprint|jump|fall|swim|dodge|knockback (derived)
+arch_player.set_move_speed(player, state: string, mult: number)  -- player:set_physics_override({speed=...})
+arch_player.apply_knockback(player, direction: {x,y,z}, force: number)  -- player:add_velocity
+arch_player.is_grounded(player) -> boolean                       -- node-below + velocity check
+arch_player.get_velocity(player) -> {x,y,z}
 ```
 
-### `arch_engine.input`
+### `arch_input` (Lua; `get_player_control` action/axis map)
 
 ```lua
-arch_engine.input.bind_action(action: string, keys: string[], gamepad_buttons: string[] = {})
-arch_engine.input.bind_axis(axis: string, positive: string, negative: string, gamepad_axis: string = "")
-arch_engine.input.is_action_pressed(action: string) -> boolean
-arch_engine.input.is_action_just_pressed(action: string) -> boolean
-arch_engine.input.is_action_just_released(action: string) -> boolean
-arch_engine.input.get_axis(axis: string) -> number                -- [-1.0, 1.0], deadzone applied
-arch_engine.input.get_actions() -> string[]
-arch_engine.input.load_profile(path: string) -> boolean
-arch_engine.input.save_profile(path: string) -> boolean
+arch_input.is_pressed(player, action: string) -> boolean        -- action = control-field set, e.g. jump={jump}, forward={up}
+arch_input.just_pressed(player, action: string) -> boolean      -- edge vs previous tick cache
+arch_input.just_released(player, action: string) -> boolean
+arch_input.get_axis(player, axis: string) -> number              -- [-1.0, 1.0]; move_x/y read movement_x/movement_y (sticks included)
+arch_input.list_actions() -> string[]
 ```
 
-Default profile loaded from `game/arch_rpg/config/input_default.json`. Gamepad axes: `left_stick_x`, `left_stick_y`, `right_stick_x`, `right_stick_y`, `l2`, `r2`.
+Profiles persisted via `core.get_mod_storage()` or `core.get_worldpath()` files (no `game/arch_rpg/config/input_default.json` engine path).
 
-### `arch_engine.entity`
+### `arch_entity` / `arch_debug` (Lua; wrappers + HUD)
 
 ```lua
-arch_engine.entity.get_position(id: number) -> {x,y,z}
-arch_engine.entity.set_position(id: number, pos: {x,y,z})
-arch_engine.entity.get_rotation(id: number) -> {x,y,z}
-arch_engine.entity.has_component(id: number, component: string) -> boolean
-arch_engine.entity.get_attachment_bone(id: number, slot: string) -> string | nil
-arch_engine.entity.set_attachment(id: number, slot: string, item_id: string)
+arch_entity.get_position(obj) -> {x,y,z}                        -- obj:get_pos
+arch_entity.get_rotation(obj) -> {x,y,z}                        -- obj:get_rotation (radians, Z-X-Y order)
+arch_debug.set_state_label(player, text)                        -- player:hud_add/hud_change text element
+arch_debug.frame_ms() -> number                                 -- core.get_us_time deltas
 ```
 
-Slots: `weapon`, `offhand`, `head`, `chest`, `legs`, `feet`.
+Overlays: state labels via HUD text, camera-ray markers via particles; frame timing via `get_us_time`. No C++ debug draw.
 
-### `arch_engine.render`
+## Mod plan (no engine branches)
 
-```lua
-arch_engine.render.set_debug_overlay(name: string, enable: boolean)
-arch_engine.render.get_fps() -> number
-arch_engine.render.get_frame_time_ms() -> number
-```
+No engine branches. Work lands as Lua game mods in the parent repo (one commit per mod, `feat(game): ... (phase-2)`). Suggested split (implementer decides final mod names):
 
-Overlays: `camera_rays`, `state_labels`, `bone_positions`, `input_axes`.
-
-## Branch plan
-
-One concern per branch, squash-merge to `main` in order. Each branch rebases on `main` before merge.
-
-| Order | Branch | Scope | Depends on |
+| Order | Mod (under `game/arch_base/mods/`) | Scope | Depends on |
 |---|---|---|---|
-| 1 | `feature/camera` | Camera manager C++, Lua bindings, collision, shoulder offset, smoothing | Phase 1 main |
-| 2 | `feature/input` | Input action map C++, Lua bindings, default profile, gamepad support | Phase 1 main |
-| 3 | `feature/animation` | Animation FSM C++, Lua bindings, built-in states, attachment points | `feature/camera` merged |
-| 4 | `feature/rpg-api` | Player controller states, entity helpers, render debug, integration smoke test | `feature/camera` + `feature/animation` + `feature/input` merged |
+| 1 | `arch_camera` | Eye offsets, mode lock, raycast collision pull-in, smoothing lerp | nothing (uses stock API) |
+| 2 | `arch_input` | Action/axis map over `get_player_control`, profiles via mod storage | nothing |
+| 3 | `arch_anim` | Lua animation FSM, frame ranges, bone posing | `arch_input` (reads control state) |
+| 4 | `arch_player` + debug | Derived locomotion states, physics multipliers, knockback, HUD labels | `arch_input` + `arch_anim` |
 
-Merge command pattern:
+No squash-merges, no engine `main` — parent repo commits only.
 
-```bash
-git checkout main
-git merge --squash feature/<name>
-git commit -m "feat(engine): <scope> (<phase-2>)"
-```
+## Design-notes layout
 
-No fast-forward merges; every Phase 2 feature is one squashed commit on `main`.
-
-## Engine patches layout
-
-Each patch directory contains design notes only — no code. Code lives in `engine/archlast-luanti/src/archlast/`.
+Each notes directory contains probe results + Lua mapping only — no code, no C++ sketches. Lua implementation lives in `game/arch_base/mods/`.
 
 ```text
-engine-patches/
+engine-patches/                  # historical name; no C++ is patched
 ├── camera/
-│   ├── README.md          # Lua probe results, gap analysis, C++ class sketch
-│   └── collision-notes.md # Raycast strategy, terrain vs entity filtering
+│   ├── README.md          # Lua probe results, stock-API mapping, limits
+│   └── collision-notes.md # Raycast strategy (core.raycast vs line_of_sight), terrain vs entity filtering
 ├── animation/
-│   ├── README.md          # FSM design, state/tag taxonomy, blend rules
-│   └── bone-registry.md   # Attachment point naming convention per model
+│   ├── README.md          # Lua FSM design, state taxonomy, frame ranges + blend
+│   └── bone-registry.md   # Bone names per model (e.g. Arm_Left_Pitch_Control), override conventions
 ├── input/
-│   ├── README.md          # Action map schema, gamepad mapping table
-│   └── profiles.md        # Default + rebind persistence format
+│   ├── README.md          # Action map schema over get_player_control fields
+│   └── profiles.md        # Mod-storage / world-file persistence format
 └── gameplay-api/
-    ├── README.md          # Player controller state diagram, knockback contract
-    └── entity-helpers.md  # Component query patterns, caching notes
+    ├── README.md          # Derived locomotion-state diagram, knockback contract
+    └── entity-helpers.md  # Wrapper patterns, deferred-component notes
 ```
 
-Each `README.md` MUST contain: (1) Lua capability probe result, (2) gap list, (3) chosen approach with rationale, (4) C++ class/method signatures, (5) Lua binding signatures, (6) upstream conflict risk assessment.
+Each `README.md` MUST contain: (1) Lua capability probe result with modding-docs line refs, (2) limits vs old C++ plan, (3) chosen Lua approach with rationale, (4) Lua module/function signatures, (5) deferred gaps (never engine patches).
 
 ## Performance budget
 
-- Frame time regression vs Phase 1 baseline: **≤10%** measured by `scripts/bench-frame-time.sh` (to be created in this phase).
-- Camera raycast: ≤0.5ms per frame (single ray, early-out on terrain).
-- Animation FSM update: ≤0.2ms for 64 entities.
-- Input polling: ≤0.05ms per frame.
-- Memory: no new per-frame allocations in hot paths; object pools for raycast results and animation events.
+- Frame time regression vs Phase 1 baseline: **≤10%** measured by `scripts/run-dev.sh --smoke --bench`.
+- Camera raycast: one short ray per player per tick (`core.raycast` early-out on terrain); skip when standing still.
+- Animation FSM: table lookups only per globalstep; `set_animation` only on state change (no per-frame re-set).
+- Input: reads already-polled `get_player_control()` table; cache edge states per player.
+- Memory: no new per-frame allocations in hot paths; reuse vector tables.
 
 Baseline captured at Phase 2 start:
 
@@ -201,31 +169,31 @@ Baseline captured at Phase 2 start:
 scripts/run-dev.sh --smoke --bench > /tmp/phase1-baseline.txt
 ```
 
-Every merge to `main` re-runs benchmark; CI blocks if regression exceeds budget.
+Every mod commit re-runs benchmark; revert if regression exceeds budget.
 
-## Risks and mitigations
+## Risks and mitigations (Lua-only)
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| IrrlichtMt camera internals change upstream | Camera collision breaks, rework needed | Wrap behind `CameraManager` interface; isolate Irrlicht calls to one `.cpp`; pin upstream commit tightly |
-| Upstream merge conflicts on `genericobject.cpp` / `camera.cpp` | Rebase pain, delayed sync | Keep C++ diffs minimal and in `src/archlast/` namespace; avoid modifying Luanti core files when possible; document every touched file in patch README |
-| Animation blending quality insufficient with linear lerp | Visual popping | Implement crossfade with dual-animation playback; budget allows 2 concurrent anims per entity |
-| Gamepad input varies across Linux drivers | Inconsistent axis mapping | Use SDL2 gamepad DB; ship `gamecontrollerdb.txt`; allow user override via profile |
-| Lua GC pressure from per-frame vector table creation | Frame stutters | Reuse cached vector tables; provide `*_into(out_table)` variants for hot callers |
-| Shoulder offset causes clipping in tight corridors | Bad UX | Collision raycast includes offset origin; fallback to centered camera on repeated hits |
-| State machine transitions race with network corrections | Visual desync | Server-authoritative state; client predicts, reconciles on correction; FSM accepts forced state set without blend |
+| Engine F5 camera distance fixed; no true zoom | Can't replicate C++ `set_distance` 1:1 | Approximate with offset magnitude + Lua lerp; document as known limit |
+| `get_player_control` lacks raw keycodes/gamepad buttons | No arbitrary rebinding | Map actions to control fields; `movement_x/y` cover sticks; document rebinding gap |
+| Per-tick Lua raycast cost | Frame cost on busy servers | One short ray per player per tick max; `line_of_sight` fast path when entities irrelevant |
+| Lua GC pressure from per-frame vector tables | Frame stutters | Reuse cached vector tables in `poll()` hot paths |
+| Shoulder offset clips in tight corridors | Bad UX | Raycast includes offset origin; fallback to centered offset on repeated hits |
+| State machine races with lag corrections | Visual desync | Server-authoritative derived state; forced `set_animation` without blend on teleport/respawn |
+| Upstream Lua API drift | Mod breaks on engine update | Pin engine commit `c0e6812b1`; modding-docs line refs re-verified at implementation time |
 
 ## Logging conventions
 
-All Phase 2 log lines use prefixed tags for grep-ability:
+All Phase 2 Lua log lines use prefixed tags for grep-ability (via `core.log`):
 
-- `[ARCH-ENGINE:CAMERA]` — camera manager messages
-- `[ARCH-ENGINE:ANIM]` — animation FSM transitions, errors
-- `[ARCH-ENGINE:INPUT]` — action map load, bind failures
-- `[ARCH-ENGINE:PLAYER]` — controller state changes
+- `[ARCH:CAMERA]` — offset/mode/collision messages
+- `[ARCH:ANIM]` — state transitions, errors
+- `[ARCH:INPUT]` — profile load, bind failures
+- `[ARCH:PLAYER]` — derived state changes
 - `[ARCH-RPG:*]` — reserved for Phase 3+ gameplay mods (NOT used in this phase)
 
-Log level: `infostream` for state changes, `warningstream` for fallbacks/recoveries, `errorstream` for API misuse and assertion failures. Never log per-frame data.
+Log level: `action` for state changes, `warning` for fallbacks/recoveries, `error` for API misuse. Never log per-frame data.
 
 ## Base game `arch_base` (mechanics core — executed in this phase)
 
@@ -249,7 +217,7 @@ Because the game is outside the engine submodule, discovery needs one explicit l
 
 Mineclonia-base, VoxeLibre-donor. Rationale: Mineclonia HEAD is days-fresh, declares load order (`first_mod`/`last_mod`), and its `COMPAT/` layer already absorbs VoxeLibre differences; reversing the direction would re-derive that work. Shared-name mods (173): keep Mineclonia version unless the VoxeLibre variant is strictly newer — decided per-mod at merge time by the donor-evaluation table in Group 0. VoxeLibre-only mods (~48): adopt only if no Mineclonia equivalent exists; Mineclonia-only mods (~49, incl. all of `COMPAT/`): keep unconditionally.
 
-The merge is Lua/config only — no C++ changes, no engine API dependency. Phase 2 engine work (`arch_engine.*`) proceeds against `devtest`; the merged game is smoke-tested with stock engine behavior.
+The merge is Lua/config only — no C++ changes, no engine API dependency. Phase 2 Lua-mod work (`arch_*` game mods) proceeds against `devtest` on the stock engine build; the merged game is smoke-tested with stock engine behavior.
 
 ### Shader preset as first-class mod
 
@@ -271,12 +239,12 @@ scripts/run-dev.sh --smoke --gameid arch_base                # headless server s
 
 All must pass for Phase 2 completion:
 
-1. Third-person follow camera with collision works in smoke world (no terrain clip).
-2. `arch_engine.camera.set_distance` / `set_shoulder_offset` callable from Lua console without error.
-3. Animation state transitions `idle→walk→jump→fall→land` observable in-game via debug overlay.
-4. Input action `move_forward` responds to both keyboard and gamepad in same session.
-5. `scripts/build-linux.sh` + `scripts/run-dev.sh --smoke --third-person` exit 0.
+1. Third-person camera with Lua raycast pull-in works in smoke world (no terrain clip), stock engine.
+2. `arch_camera.set_shoulder` / offset getters callable from Lua console without error.
+3. Animation state transitions `idle→walk→jump→fall→land` observable in-game via HUD label.
+4. Input action `move_forward` derived from `get_player_control` (+ `movement_x/y` sticks) in same session.
+5. `scripts/build-linux.sh` (stock upstream build) + `scripts/run-dev.sh --smoke --third-person` exit 0.
 6. Frame time regression ≤10% vs Phase 1 baseline.
-7. All four feature branches squash-merged to `main`; no dangling branches.
-8. Every `engine-patches/*/README.md` contains probe + gap + decision + signatures.
+7. No engine branches, no engine commits; `engine/archlast-luanti` at pin `c0e6812b1`, clean, no `src/archlast/`.
+8. Every `engine-patches/*/README.md` contains probe + stock-API mapping + Lua signatures + deferred gaps.
 9. Base-game plan complete (no code): Group 0 specifies severed-history fork + merge + `LUANTI_GAME_PATH` wiring + provenance for `game/arch_base/`; `scripts/run-dev.sh --smoke --gameid arch_base` acceptance written for the execution phase.
