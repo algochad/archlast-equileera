@@ -92,6 +92,8 @@ if [ -d "$HELPER_MOD" ]; then
 fi
 
 echo "Starting headless server..."
+# Fresh log per run: engine appends to --logfile, stale errors would fail Log Check
+rm -f "$LOGFILE"
 "$BIN" --server --world "$SMOKE_WORLD" --gameid "$GAMEID" --logfile "$LOGFILE" &
 SMOKE_PID=$!
 
