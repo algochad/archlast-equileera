@@ -1,8 +1,11 @@
 -- arch_thirdperson - Improved third-person camera
 -- Based on ctf-improvedthirdperson by fancyfinn9
 -- Adapted: no ctf_settings dependency, uses native set_eye_offset + chat toggle
--- Note: raised left arm in third-person is Mineclonia's default idle animation pose
--- (baked into character.b3d keyframes, not fixable via Lua bone overrides alone)
+-- Note: in third-person FRONT view the screen-left raised arm is the player's RIGHT
+-- hand holding the wielded hotbar item (mcl_player/animations.lua "when holding an
+-- item" branch pitches Arm_Right_Pitch_Control forward so others can see the item).
+-- Select an empty hotbar slot or use F5 third-person-back view and the arm rests.
+-- Stand keyframes (frames 0-79) are neutral; this mod never drives arm bones.
 -- SPDX-License-Identifier: MIT
 
 local TP_OFFSET_FIRST = {x = 0, y = 0, z = 0}

@@ -26,3 +26,15 @@ url = https://codeberg.org/TheUnknownHack3r/voxelibre_shader_preset_port.git
 branch = master
 sha = cf0cf6198ddd20b239ac9dbdb39e6facdd09e7b9
 license = MIT
+
+[texturepack.pixel-perfection]
+role = texture-pack
+url = https://github.com/minetest-texture-packs/Pixel-Perfection
+branch = master
+sha = 7935d064fc6f993d1b5038ed5ec17a615600cf0a
+license = CC-BY-SA-4.0
+authors = XSheep, Toby109tt, tacotexmex, devurandom
+supported_games_upstream = minetest_game
+integration = same-basename-copy-into-arch_base-mods
+same_name_files_copied = 128
+note = upstream pack targets minetest_game default/* names; only same-basename files applied; mcl_* game textures keep Mineclonia art
