@@ -46,3 +46,7 @@ Phase 2 status: COMPLETE (all server-verifiable gates green; client-only gates d
 - Prior A1–A4 results above (arch_engine NEEDS-CLIENT etc.) are superseded — they measured the reverted C++ path. Next acceptance run uses the rewritten A1–A6 gates.
 - Parent commit: $(git rev-parse HEAD)
 - Engine commit: $(git -C engine/archlast-luanti rev-parse HEAD)
+
+## Phase 1 Baseline
+Date: 2026-10-04T14:39:07Z
+frame_time_ms=16.7

@@ -87,3 +87,35 @@ Known limits (upstream-admitted): wielded bow/crossbow/shield poses, slim-arms v
 ## Config
 
 settingtypes.txt: Mineclonia base + 86 VoxeLibre-only keys appended (deduped by key). minetest.conf: Mineclonia verbatim (only diff vs VL was comment wording + mcl_levelgen_enable_ersatz kept).
+
+## Asuna (leafstride + researcher)
+
+Upstream collection: https://github.com/asuna-mt/asuna @ 0cb527a96cf744bb012be33a7759f84ff45d6be1 (MIT). Only two mods vendored; remainder rejected after audit (see rejection list below).
+
+### leafstride
+
+Submodule: https://github.com/asuna-mt/leafstride @ 5db4b4a60b6f91522e1a0b19709a436e37641f98 (asuna-v1.1.5, MIT).
+5 files -> mods/ENVIRONMENT/leafstride/ (init.lua, mod.conf, settingtypes.txt, README.md, LICENSE byte-identical; zero deps, no patches).
+
+### researcher
+
+Submodule: https://github.com/asuna-mt/researcher @ 4ffa84488e1634887b23b392a7a0cf9c803613b3 (asuna-v1.1.5, MIT).
+24 files -> mods/MISC/researcher/ (init.lua, mod.conf, settingtypes.txt, README.md, LICENSE, CREDITS.md, src/*.lua x8, models/research_table.obj, sounds/*.ogg x3, textures/*.png x10; .xcf/.git/screenshots dropped).
+Arch Base compat patches:
+
+| file | change | reason |
+|---|---|---|
+| `init.lua` | gate decoupled: loads unconditionally | upstream wrapped entire mod in `asuna.researcher_enabled` check against asuna core config; arch_base has no asuna core, mod would silently no-op |
+| `mod.conf` | hard `depends = mcl_sounds, mcl_inventory, awards` | upstream had optional/soft deps on asuna-prefixed equivalents; arch_base uses Mineclonia names, load order must be guaranteed |
+
+### Rejected Asuna mods
+
+| mod | category | reason |
+|---|---|---|
+| findbiome | duplicate name | arch_base already ships mcl_findbiome / equivalent biome finder |
+| awards | duplicate name | arch_base already ships awards mod (Mineclonia/VL lineage) |
+| tt | duplicate name | arch_base already ships tt (tooltip) mod |
+| show_wielded_item | duplicate name | arch_base already ships wielded-item HUD mod |
+| stamina | default-dep | depends on minetest_game default player API; incompatible with mcl_player backend |
+| soup | default-dep | references default food/hunger APIs absent in Mineclonia |
+| flowerpot | default-dep | registers against default nodes; no mcl_flowers mapping |
