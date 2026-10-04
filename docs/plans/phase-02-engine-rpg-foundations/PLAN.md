@@ -4,10 +4,11 @@ Depends on: Phase 1 green.
 
 ## Goal
 
-Third-person camera + character controller + animation API usable from Lua. No RPG stats/combat yet.
+Plan (no code) the `game/arch_base/` mechanics core — severed-history merge of Mineclonia (base) + VoxeLibre (donor) + shader preset as first-class mod — then deliver third-person camera + character controller + animation API usable from Lua. No RPG stats/combat yet.
 
-- Content bootstrap: vendor `6b12075e71.zip` (VoxeLibre 0.92.3 game) to `engine/archlast-luanti/games/mineclone2/` + `9e68da81b8.zip` (shader mod) into its `mods/`; playable via `--gameid mineclone2` (reference content, NOT Phase 3's `game/arch_rpg/`)
+## Scope
 
+- Base-game plan: fork sources table (Mineclonia `main`@`85029767` base / VoxeLibre `master`@`2373982f` donor / shader `master`@`cf0cf619`), merge direction, `game/arch_base/` layout, `LUANTI_GAME_PATH` discovery, provenance format, donor-evaluation + smoke procedure (TASKS.md Group 0, plan-only — execution later)
 - `engine-patches/{camera,animation,input,gameplay-api}/` design notes
 - C++ in `engine/archlast-luanti/`: `arch_engine.camera.*`, `arch_engine.animation.*`, `arch_engine.input.*`, `arch_engine.player.*` (minimal bindings per spec §10)
 - Branches: `feature/camera`, `feature/animation`, `feature/input`, `feature/rpg-api` — one concern per branch, squash-merge to `main`
@@ -15,11 +16,11 @@ Third-person camera + character controller + animation API usable from Lua. No R
 
 ## Non-goals
 
-No stats/classes/skills (Phase 4). No rendering overhaul. No asset finalization.
+No stats/classes/skills (Phase 4). No rendering overhaul. No asset finalization. No `game/arch_base/` implementation in this phase (plan only); no `upstream` remotes on game content ever.
 
 ## Tasks
 
-0. Content bootstrap first: unzip both zips (sha256-verify), place game + shader mod, smoke `--gameid mineclone2` (see TASKS.md Group 0).
+0. Base-game plan first: record fork SHAs + merge rules + layout + `LUANTI_GAME_PATH` wiring + provenance + smoke procedure (see TASKS.md Group 0). No cloning, no `game/arch_base/` code.
 1. Probe: can Lua `set_camera_mode` + existing API cover 80%? Document gaps in `engine-patches/camera/README.md`.
 2. Implement camera collision + shoulder offset behind smallest API surface.
 3. Expose animation state API; wire idle/walk/jump states.
@@ -28,8 +29,7 @@ No stats/classes/skills (Phase 4). No rendering overhaul. No asset finalization.
 
 ## Acceptance
 
-- [ ] Content bootstrap: `games/mineclone2/game.conf` present, `--gameid mineclone2` smoke exits 0, no `ModError`
-
+- [ ] Base-game plan decision-complete: Group 0 names exact SHAs, merge base/donor, `game/arch_base/` layout, `LUANTI_GAME_PATH` lever, provenance format, A0 smoke procedure — implementable with zero open choices
 - [ ] Third-person follow cam with collision (no terrain clip in smoke world)
 - [ ] `arch_engine.camera.set_distance/set_shoulder_offset` callable from Lua console
 - [ ] Animation state transitions idle→walk→jump observable in-game

@@ -1,14 +1,20 @@
 # Phase 2 — Engine RPG Foundations
 
-Third-person camera, character controller, animation state machine, and input abstraction exposed to Lua. No stats, classes, skills, or combat logic yet. This phase establishes the **engine-side** primitives that Phase 3 (base game) and Phase 4 (RPG foundation) consume exclusively through `arch_engine.*` Lua APIs.
+Base-game mechanics core (`game/arch_base/`, planned here from Mineclonia + VoxeLibre + shader preset) plus engine-side third-person camera, character controller, animation state machine, and input abstraction exposed to Lua. This phase establishes the **engine-side** primitives that Phase 3 and Phase 4 consume exclusively through `arch_engine.*` Lua APIs.
 
 ## Goal
 
-Deliver a usable-from-Lua third-person player experience: camera follows the local player with collision avoidance and shoulder offset; character controller supports locomotion states; animation state machine drives skeletal transitions; input is action-mapped and gamepad-ready. All gameplay code interacts through stable Lua bindings; C++ internals remain opaque.
+Two tracks, in order:
+
+1. **Base game `arch_base`** (mechanics core, plan-only in this phase): fork Mineclonia + VoxeLibre + shader-preset sources with severed history into `game/arch_base/`, merge to a single Mineclonia-based tree, ship the shader preset as a first-class game mod. This becomes the mechanics system every later phase builds on.
+2. **Engine RPG foundations**: usable-from-Lua third-person player experience — camera follows the local player with collision avoidance and shoulder offset; character controller supports locomotion states; animation state machine drives skeletal transitions; input is action-mapped and gamepad-ready. All gameplay code interacts through stable Lua bindings; C++ internals remain opaque.
+
+No implementation of the base-game merge in this phase — Group 0 below plans it decision-complete; execution happens later.
+
+## Non-goals
 
 - RPG stats, attributes, classes, skills, spells (Phase 4).
-- Vendored reference content is play-only: no VoxeLibre mod edits, no upstreaming, no re-licensing (see Content bootstrap).
-
+- Base-game merge execution (planned in Group 0, implemented later — no `game/arch_base/` code in this phase).
 - Combat damage calculation, hit registration, status effects (Phase 4).
 - Item/equipment system, inventory UI (Phase 5+).
 - Rendering pipeline overhaul, shader authoring, post-processing.
@@ -221,39 +227,45 @@ All Phase 2 log lines use prefixed tags for grep-ability:
 
 Log level: `infostream` for state changes, `warningstream` for fallbacks/recoveries, `errorstream` for API misuse and assertion failures. Never log per-frame data.
 
-## Content bootstrap (reference content, not the product game)
+## Base game `arch_base` (mechanics core — plan-only this phase)
 
-Playable default content comes from two ContentDB packages, vendored locally — never fetched at build time:
+The product's mechanics system is a merged single game hosted in this repo. Three upstream sources, all severed-history forks (no `upstream` remote, no future pulls — one-way snapshot; `dependencies/mods.lock` records exact SHAs for provenance):
 
-| Zip | ContentDB package | Type | Size | License |
+| # | Source | Branch / SHA (verified 2026-10-04) | Role in merge | License |
 |---|---|---|---|---|
-|`6b12075e71.zip` (sha256 `51ea9242…b279d`)| [`Wuzzy/mineclone2`](https://content.luanti.org/packages/Wuzzy/mineclone2) 0.92.3 | full game (220 mods, `mineclone2/` root) | 81 MB zip / ~120 MB unpacked, 6692 files | GPLv3 (`LICENSE.txt` at game root) |
-|`9e68da81b8.zip` (sha256 `bba1b104…c735f74`)| [`QBSteve/voxelibre_shader_preset_port`](https://content.luanti.org/packages/QBSteve/voxelibre_shader_preset_port) | single mod (`voxelibre_shader_preset_port/`: `mod.conf`, `init.lua`, `README.md`, `LICENSE`) | 2.0 KB | MIT |
+| 1 | [`mineclonia/mineclonia`](https://codeberg.org/mineclonia/mineclonia.git) | `main` @ `85029767` (HEAD, 2026-10-04) | **Merge base.** 222 mods, `title = Mineclonia`, declares `first_mod = mcl_init` / `last_mod = _mcl_autogroup`, `min_minetest_version = 5.10`. Freshest tree, ships `mods/COMPAT/` shims (`mcl_vl_entities_purge`, `*_compat`) already solving part of the VL-compat problem. | GPLv3 |
+| 2 | [`VoxeLibre/VoxeLibre`](https://git.minetest.land/VoxeLibre/VoxeLibre.git) | `master` @ `2373982f` (HEAD; `version=0.93.0-SNAPSHOT`) | **Donor.** 221 mods, `title = VoxeLibre`, no first/last mod lines. 173 mod names shared with Mineclonia, ~48 VoxeLibre-only mods evaluated as donors, ~49 Mineclonia-only mods kept. | GPLv3 |
+| 3 | [`TheUnknownHack3r/voxelibre_shader_preset_port`](https://codeberg.org/TheUnknownHack3r/voxelibre_shader_preset_port.git) | `master` @ `cf0cf619` | **First-class game mod.** 4 files (`mod.conf`, `init.lua`, `README.md`, `LICENSE`); game-agnostic `player:set_lighting` on join. Ships as `mods/arch_shader_preset/` in the merged tree (renamed: no `voxelibre_*` names in `arch_base`). | MIT |
 
-Minimum engine for VoxeLibre 0.92.3 is Luanti 5.10+ (ContentDB release metadata); our 5.17.0 fork satisfies this. The zip root dirs are ContentDB naming (`mineclone2/`); the directory name doubles as the gameid via `normalizeGameId`, so no rename needed.
+User-supplied ContentDB zips (`6b12075e71.zip` = VoxeLibre 0.92.3 release, sha256 `51ea9242…b279d`; `9e68da81b8.zip` = shader port, sha256 `bba1b104…c735f74`) are superseded by direct git clones above — zips stay as fallback only if a source host is unreachable.
 
-### Placement (follows engine game discovery)
+### Hosting (locked)
 
-Engine game discovery (`src/content/subgames.cpp:133-165`) scans `path_share/games/` and `path_user/games/` for dirs containing `game.conf`. With `RUN_IN_PLACE`, both resolve to the submodule root (`src/porting.cpp:681-694`), so content lives **inside** the fork at:
+Merged tree lives at **`game/arch_base/` in the parent repo** (`archlast-equileera`), tracked in git. NOT inside `engine/archlast-luanti/games/` — the engine submodule stays pristine (C++ fork commits only); GPL game content keeps a clean license boundary in the parent tree, matching the Phase 3 `game/arch_rpg/` layout. Directory name = gameid `arch_base` (engine `normalizeGameId` maps dir name → gameid; `game.conf` title = `Arch Base`).
 
-```text
-engine/archlast-luanti/games/mineclone2/          # full game: game.conf, menu/, mods/, minetest.conf
-engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port/  # shader mod drops into game mods
-```
+Because the game is outside the engine submodule, discovery needs one explicit lever: `LUANTI_GAME_PATH` env (engine `getSubgamePathEnv`, `src/content/subgames.cpp:52-76`) or the `--gameid arch_base` + games-dir equivalent. Group 0 picks `LUANTI_GAME_PATH=$REPO_ROOT/game` exported in `scripts/run-dev.sh` and smoke paths — no engine source change, no symlink into the submodule.
 
-Do NOT use `mods/` at repo root or `~/.luanti/mods` — those are addon paths requiring `load_mod_<name>` opt-in per world (`src/content/mod_configuration.cpp:118-165`). Game-bundled mods load automatically via `addGameMods` (`mods.cpp:21`).
+### Merge direction (locked)
 
-The shader mod's `init.lua` calls `player:set_lighting({...})` on join — game-agnostic, safe to ship inside `mineclone2/mods/`. Its name `voxelibre_shader_preset_port` collides with nothing in the 220-mod game tree.
+Mineclonia-base, VoxeLibre-donor. Rationale: Mineclonia HEAD is days-fresh, declares load order (`first_mod`/`last_mod`), and its `COMPAT/` layer already absorbs VoxeLibre differences; reversing the direction would re-derive that work. Shared-name mods (173): keep Mineclonia version unless the VoxeLibre variant is strictly newer — decided per-mod at merge time by the donor-evaluation table in Group 0. VoxeLibre-only mods (~48): adopt only if no Mineclonia equivalent exists; Mineclonia-only mods (~49, incl. all of `COMPAT/`): keep unconditionally.
 
-### Licensing note
+The merge is Lua/config only — no C++ changes, no engine API dependency. Phase 2 engine work (`arch_engine.*`) proceeds against `devtest`; the merged game is smoke-tested with stock engine behavior.
 
-GPLv3 game content sits inside the `engine/archlast-luanti/` submodule working tree but is untracked build-adjacent content, NOT a source edit: upstream `.gitignore` already ignores `/games/*` except `!/games/devtest/`, so `games/mineclone2` never enters fork commits — the task verifies this with `check-ignore` and only falls back to `.git/info/exclude` if verification fails. Record provenance in `dependencies/mods.lock` + game-root `LICENSE.txt` attribution. Phase 3's original `game/arch_rpg/` remains the product game under the project license; VoxeLibre is reference/playable content only.
-### Play commands after bootstrap
+### Shader preset as first-class mod
+
+Cloned to `game/arch_base/mods/arch_shader_preset/` (contents identical to upstream except `mod.conf` name/title + `depends = []`). Game-agnostic: registers a single `core.register_on_joinplayer` lighting hook, no dependency on VoxeLibre/Mineclonia mod names, so it survives the merge untouched. Enabled by default in the merged `game.conf` load (game-bundled mods auto-load via `addGameMods`; no `load_mod_*` needed).
+
+### Licensing
+
+Merged tree is overwhelmingly GPLv3 (both games) with one MIT mod. `game/arch_base/LICENSE.txt` = GPLv3 full text + MIT attribution appendix for `arch_shader_preset` (keep upstream `LICENSE` file inside the mod dir verbatim). Provenance (all three SHAs + zip hashes as fallback record) goes in `dependencies/mods.lock` under `[content.arch_base.*]`. No re-licensing, no upstreaming; severed history means no `upstream` remotes ever configured on this tree.
+
+### Play commands after merge (execution phase)
 
 ```bash
-bin/archlast --gameid mineclone2          # main menu: VoxeLibre worlds
-scripts/run-dev.sh --smoke --gameid mineclone2  # headless server smoke on reference game
+LUANTI_GAME_PATH=game bin/archlast --gameid arch_base        # main menu: Arch Base worlds
+scripts/run-dev.sh --smoke --gameid arch_base                # headless server smoke on merged game
 ```
+
 
 ## Exit criteria
 
@@ -267,4 +279,4 @@ All must pass for Phase 2 completion:
 6. Frame time regression ≤10% vs Phase 1 baseline.
 7. All four feature branches squash-merged to `main`; no dangling branches.
 8. Every `engine-patches/*/README.md` contains probe + gap + decision + signatures.
-9. Content bootstrap green: `games/mineclone2/game.conf` present, `scripts/run-dev.sh --smoke --gameid mineclone2` exits 0 with no `ModError`/`could not be found` in log.
+9. Base-game plan complete (no code): Group 0 specifies severed-history fork + merge + `LUANTI_GAME_PATH` wiring + provenance for `game/arch_base/`; `scripts/run-dev.sh --smoke --gameid arch_base` acceptance written for the execution phase.

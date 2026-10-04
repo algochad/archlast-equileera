@@ -23,112 +23,110 @@ cat /tmp/phase1-baseline.txt | grep -E 'frame_time_ms|fps'
 Pass: no output from `git status`, baseline file contains numeric frame time.
 
 ---
-## Task Group 0: Content Bootstrap — VoxeLibre + Shader Mod (30 min)
+## Task Group 0: Base Game `arch_base` — Merge Plan (plan-only, no execution)
 
-Do this before any engine work: gives the fork a playable default game and a shader preset.
-Source zips are user-supplied ContentDB downloads — never fetched at build time.
+Outcome: a decision-complete merge spec. No cloning, no `game/arch_base/` code, no script edits in this phase — execution happens later solely from this spec. Engine Groups A+ proceed against `devtest` independently.
 
-### 0.1. Verify zips
+### 0.1. Fork sources (locked, verified 2026-10-04)
 
-- [ ] Both zips exist; sha256 matches recorded values
-- [ ] Confirm package identity from contents (`mineclone2/game.conf` → VoxeLibre 0.92.3; `voxelibre_shader_preset_port/mod.conf` → name match)
+- [ ] Record in `dependencies/mods.lock` at execution time (format below — do NOT write it now; no game code exists yet)
 
-```bash
-sha256sum /home/algochad/Downloads/9e68da81b8.zip /home/algochad/Downloads/6b12075e71.zip
-# Expected:
-# bba1b1040a38114ead311f2834d6260add210b4fec845afc44da524840735f74  9e68da81b8.zip (shader mod, 2.0 KB)
-# 51ea9242aabb1f29575abbfb599c79bcde9435616ea097c0582e11ac1b2b279d  6b12075e71.zip (VoxeLibre 0.92.3, 81 MB)
-unzip -l /home/algochad/Downloads/6b12075e71.zip | head -5   # mineclone2/game.conf visible
-unzip -l /home/algochad/Downloads/9e68da81b8.zip             # voxelibre_shader_preset_port/{mod.conf,init.lua}
-```
-
-Pass: hashes match. Fail: stop, re-download from ContentDB (`Wuzzy/mineclone2` 0.92.3, `QBSteve/voxelibre_shader_preset_port`).
-
-### 0.2. Vendor game into fork
-
-- [ ] Unzip `6b12075e71.zip` so `engine/archlast-luanti/games/mineclone2/game.conf` exists (title `VoxeLibre`)
-- [ ] Directory name stays `mineclone2` — engine `normalizeGameId` maps dir name → gameid, no rename
-- [ ] Confirm fork-commit exclusion: upstream `.gitignore` already has `/games/*` with only `!/games/devtest/` un-ignored, so `games/mineclone2` is ignored by default — verify, do not add new ignore rules unless verification fails
-
-```bash
-REPO_ROOT="$(pwd)"  # must be repo root
-cd /tmp && rm -rf vlstage && mkdir vlstage && cd vlstage
-unzip -o -q /home/algochad/Downloads/6b12075e71.zip
-test -f mineclone2/game.conf && grep -q "title = VoxeLibre" mineclone2/game.conf && echo "GAME OK"
-mkdir -p "$REPO_ROOT/engine/archlast-luanti/games"
-cp -r mineclone2 "$REPO_ROOT/engine/archlast-luanti/games/mineclone2"
-test -f "$REPO_ROOT/engine/archlast-luanti/games/mineclone2/game.conf" && echo "PLACED OK"
-git -C "$REPO_ROOT/engine/archlast-luanti" check-ignore -v games/mineclone2/game.conf && echo "EXCLUDED FROM FORK COMMITS OK"
-# Fallback only if the above prints nothing (i.e. not ignored):
-# echo "games/mineclone2" >> "$REPO_ROOT/.git/modules/engine/archlast-luanti/info/exclude"
-# (submodule `.git` is a gitfile; its real git dir lives under parent `.git/modules/`)
-git -C "$REPO_ROOT/engine/archlast-luanti" status --short && echo "SUBMODULE CLEAN CHECK DONE"
-```
-
-Pass: `check-ignore` prints the matching `.gitignore` rule. Parent `git status --short` shows no `engine/archlast-luanti` modification (untracked-but-ignored content inside a submodule does not dirty the parent pointer).
-
-Files touched: `engine/archlast-luanti/games/mineclone2/**` (untracked, ignored — never committed to fork or parent).
-### 0.3. Vendor shader mod into game mods
-
-- [ ] Unzip `9e68da81b8.zip`; copy `voxelibre_shader_preset_port/` into `engine/archlast-luanti/games/mineclone2/mods/`
-- [ ] Why here, not repo-root `mods/` or `~/.luanti/mods`: game-bundled mods auto-load via `addGameMods`; addon paths need per-world `load_mod_<name>` opt-in
-- [ ] Mod is game-agnostic (`init.lua` only calls `player:set_lighting` on join) — no edits needed
-
-```bash
-REPO_ROOT="$(pwd)"  # must be repo root
-cd /tmp && rm -rf shstage && mkdir shstage && cd shstage
-unzip -o -q /home/algochad/Downloads/9e68da81b8.zip
-test -f voxelibre_shader_preset_port/mod.conf && echo "MOD OK"
-cp -r voxelibre_shader_preset_port "$REPO_ROOT/engine/archlast-luanti/games/mineclone2/mods/"
-test -f "$REPO_ROOT/engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port/init.lua" && echo "MOD PLACED OK"
-```
-
-Files touched: `engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port/**` (untracked, covered by parent ignore).
-### 0.4. Record provenance
-
-- [ ] Append ContentDB provenance to `dependencies/mods.lock` (package, version, sha256, licenses)
-
-```bash
-cat >> dependencies/mods.lock << 'EOF'
-
-[content.mineclone2]
-package = Wuzzy/mineclone2
-version = 0.92.3
-zip_sha256 = 51ea9242aabb1f29575abbfb599c79bcde9435616ea097c0582e11ac1b2b279d
+```text
+[content.arch_base.mineclonia]
+role = merge-base
+url = https://codeberg.org/mineclonia/mineclonia.git
+branch = main
+sha = 85029767688df9c3ca95c9cff3b082c0a83f6704
 license = GPLv3
-path = engine/archlast-luanti/games/mineclone2
 
-[content.voxelibre_shader_preset_port]
-package = QBSteve/voxelibre_shader_preset_port
-zip_sha256 = bba1b1040a38114ead311f2834d6260add210b4fec845afc44da524840735f74
+[content.arch_base.voxelibre]
+role = donor
+url = https://git.minetest.land/VoxeLibre/VoxeLibre.git
+branch = master
+sha = 2373982f19f9b5d89cd2e3146ad7749876319e15
+license = GPLv3
+
+[content.arch_base.shader_preset]
+role = first-class-mod
+url = https://codeberg.org/TheUnknownHack3r/voxelibre_shader_preset_port.git
+branch = master
+sha = cf0cf6198ddd20b239ac9dbdb39e6facdd09e7b9
 license = MIT
-path = engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port
-EOF
 ```
 
-Files touched: `dependencies/mods.lock` (tracked, committed).
+Source facts grounding the choice: Mineclonia HEAD `85029767` (2026-10-04, 222 mods, `first_mod = mcl_init` / `last_mod = _mcl_autogroup`, `min_minetest_version = 5.10`, `mods/COMPAT/` shims present); VoxeLibre HEAD `2373982f` (`version=0.93.0-SNAPSHOT`, 221 mods, no first/last lines); shader repo 4 files, game-agnostic `set_lighting` hook. ContentDB zips are fallback only: `6b12075e71.zip` (VoxeLibre 0.92.3, sha256 `51ea9242…b279d`), `9e68da81b8.zip` (shader, sha256 `bba1b104…c735f74`).
 
-### 0.5. Wire `--gameid` / `--third-person` into `run-dev.sh`, then smoke reference game
+### 0.2. Severed-history fork procedure (execution phase)
 
-- [ ] Extend `scripts/run-dev.sh` arg parsing: `--gameid <id>` (default `devtest` — preserves current behavior), `--third-person` (warn until Group B lands, then standard smoke)
-- [ ] No-arg path stays `exec "$BIN"`; add `exec "$BIN" --gameid "$GAMEID"` when a non-default gameid is given without `--smoke`
-- [ ] Server launch line becomes `--gameid "$GAMEID"` instead of hardcoded `devtest`
-- [ ] Smoke both games; readiness loop (already 60s) covers first-time VoxeLibre mapgen
+- [ ] For each source: `git clone --depth 1 --branch <branch> <url> stage/<name>`, then `rm -rf stage/<name>/.git` — history severed at clone time
+- [ ] Copy result into the merge workspace; NEVER `git remote add upstream`, NEVER pull later — one-way snapshot
+- [ ] Order: stage Mineclonia → stage VoxeLibre → stage shader → merge per §0.3 → place at `game/arch_base/`
 
 ```bash
-# After editing scripts/run-dev.sh:
-bash -n scripts/run-dev.sh && echo "SYNTAX OK"
-scripts/run-dev.sh --smoke                     # regression: devtest still green
-scripts/run-dev.sh --smoke --gameid mineclone2 # reference game smoke
-# VL log check (same $LOG=/tmp/archlast-smoke.log; check right after each run — second run overwrites):
-grep -iE 'moderror|could not be found|assertion failed|segfault' /tmp/archlast-smoke.log && echo "FAIL: content errors" || echo "VL LOG CLEAN"
+# Execution-phase commands (do NOT run now):
+rm -rf /tmp/archstage && mkdir -p /tmp/archstage && cd /tmp/archstage
+git clone --depth 1 --branch main https://codeberg.org/mineclonia/mineclonia.git base
+git clone --depth 1 --branch master https://git.minetest.land/VoxeLibre/VoxeLibre.git donor_vl
+git clone --depth 1 --branch master https://codeberg.org/TheUnknownHack3r/voxelibre_shader_preset_port.git donor_shader
+git -C base rev-parse HEAD   # expect 85029767688df9c3ca95c9cff3b082c0a83f6704
+git -C donor_vl rev-parse HEAD  # expect 2373982f19f9b5d89cd2e3146ad7749876319e15
+git -C donor_shader rev-parse HEAD  # expect cf0cf6198ddd20b239ac9dbdb39e6facdd09e7b9
+rm -rf base/.git donor_vl/.git donor_shader/.git
 ```
 
-Pass: devtest smoke unchanged, mineclone2 smoke reaches `listening on`, both logs clean.
+Pass: three SHAs match §0.1. Fail: stop — do NOT merge from drifted HEADs; re-pin the spec first.
+### 0.3. Merge rules (locked)
 
-Files touched: `scripts/run-dev.sh` (tracked, committed with Phase 2 work).
+- [ ] Start from Mineclonia tree verbatim (`game.conf` title → `Arch Base`, keep `first_mod`/`last_mod`, keep `min_minetest_version = 5.10`)
+- [ ] Shared-name mods (173, measured by `mod.conf` dirname comparison): keep Mineclonia version by default; take VoxeLibre variant ONLY if its `init.lua` is strictly newer functionality with no Mineclonia-equivalent — record each taken donor in a `MERGE_NOTES.md` table `(mod, reason, vl-file-sha)`
+- [ ] VoxeLibre-only mods (~48): adopt ONLY if no Mineclonia equivalent exists (name OR `description` match counts as equivalent); adopted mods move to the matching Mineclonia category dir (`CORE`/`PLAYER`/`MISC`/…), keeping their `mcl_`/`vl_` names
+- [ ] Mineclonia-only mods (~49, incl. all of `mods/COMPAT/`): keep unconditionally — never delete a `COMPAT/` shim
+- [ ] Modpack `modpack.conf` files: keep Mineclonia's (rewrite `description` to `Arch Base`)
+- [ ] `menu/`, `settingtypes.txt`, `minetest.conf`: Mineclonia versions; append VoxeLibre-only settings keys if missing (dedupe by key)
+- [ ] Shader mod: copy 4 files to `mods/arch_shader_preset/`; rewrite `mod.conf` to `name = arch_shader_preset`, `title = Arch Shader Preset`, add `depends = []`; keep `init.lua`, `README.md`, `LICENSE` byte-identical
+- [ ] No `voxelibre_*` / `mineclone2` identifiers survive in dir names, `mod.conf` names, or `game.conf` (grep-verify in §0.5)
+- [ ] Final layout:
 
-Time estimate: 30 min total for Group 0.
+```text
+game/arch_base/
+├── game.conf            # title = Arch Base, first_mod = mcl_init, last_mod = _mcl_autogroup
+├── minetest.conf        # Mineclonia's + deduped VoxeLibre keys
+├── settingtypes.txt     # Mineclonia's + deduped VoxeLibre keys
+├── LICENSE.txt        # GPLv3 full text + MIT appendix for arch_shader_preset
+├── MERGE_NOTES.md       # per-mod donor table + SHA pins
+├── menu/                # Mineclonia's
+└── mods/
+    ├── COMPAT/          # kept whole
+    ├── CORE/ PLAYER/ …  # merged categories
+    └── arch_shader_preset/  # mod.conf, init.lua, README.md, LICENSE
+```
+### 0.4. Discovery wiring (execution phase)
+
+- [ ] Game lives OUTSIDE the engine submodule, so export `LUANTI_GAME_PATH="$REPO_ROOT/game"` in `scripts/run-dev.sh` (and any smoke path) before launching `bin/archlast` — engine `getSubgamePathEnv` (`src/content/subgames.cpp:52-76`) picks it up, no engine change, no submodule symlink
+- [ ] `run-dev.sh` also gains `--gameid <id>` (default `devtest`, preserves current behavior) and `--third-person` (warns until Group B lands); server line becomes `--gameid "$GAMEID"`
+- [ ] No-arg path: `exec "$BIN"` stays; add `exec "$BIN" --gameid "$GAMEID"` when a non-default gameid is given without `--smoke`
+- [ ] `dependencies/mods.lock` gains the `[content.arch_base.*]` block from §0.1 at execution time; `game/arch_base/LICENSE.txt` + `MERGE_NOTES.md` written during merge
+
+Files touched at execution: `scripts/run-dev.sh` (tracked), `game/arch_base/**` (new, tracked in parent repo), `dependencies/mods.lock` (tracked).
+
+### 0.5. Acceptance procedure A0 (execution phase)
+
+- [ ] Placement: `game/arch_base/game.conf` exists, `title = Arch Base`, `mods/arch_shader_preset/mod.conf` exists with `name = arch_shader_preset`
+- [ ] Identity purge: `grep -ri "voxelibre_shader_preset_port\|mineclone2" game/arch_base --include="*.conf" -l` returns nothing
+- [ ] Provenance: `dependencies/mods.lock` contains `[content.arch_base.mineclonia]`, `[content.arch_base.voxelibre]`, `[content.arch_base.shader_preset]` with SHAs from §0.1
+- [ ] Smoke: `scripts/run-dev.sh --smoke --gameid arch_base` exits 0 (60s readiness loop covers first-time mapgen); `/tmp/archlast-smoke.log` has `listening on`, no `ModError`/`could not be found`/`assertion failed`/`segfault`
+- [ ] Regression: `scripts/run-dev.sh --smoke` (devtest default) still exits 0 — check log immediately after each run (single `$LOG` overwritten per run)
+
+```bash
+# Execution-phase verification (do NOT run now):
+test -f game/arch_base/game.conf && grep -q "title = Arch Base" game/arch_base/game.conf && echo "GAME OK"
+test -f game/arch_base/mods/arch_shader_preset/mod.conf && echo "SHADER OK"
+grep -ri "voxelibre_shader_preset_port\|mineclone2" game/arch_base --include="*.conf" -l && echo "FAIL: stale ids" || echo "IDS CLEAN"
+scripts/run-dev.sh --smoke --gameid arch_base
+grep -iE 'moderror|could not be found|assertion failed|segfault' /tmp/archlast-smoke.log && echo "FAIL" || echo "A0 PASS"
+```
+
+Time estimate: spec is done (this plan); execution ~60–90 min later (clones ~310 MB, merge review dominates).
 
 ---
 

@@ -2,27 +2,28 @@
 
 All checks runnable in order. Phase 2 passes only if all green.
 
-## A0. Content bootstrap (reference game + shader mod)
+## A0. Base game `arch_base` (execution phase — plan-only now)
 
-Vendored ContentDB content is in place and boots headless.
+Merged severed-history game is in place and boots headless. This gate is specified here but runs at execution time, not in this phase.
 
 ```bash
 # Placement
-test -f engine/archlast-luanti/games/mineclone2/game.conf && echo "GAME PLACED"
-grep -q "title = VoxeLibre" engine/archlast-luanti/games/mineclone2/game.conf && echo "GAME ID OK"
-test -f engine/archlast-luanti/games/mineclone2/mods/voxelibre_shader_preset_port/mod.conf && echo "SHADER MOD PLACED"
-grep -q "load_mod_" engine/archlast-luanti/games/mineclone2/game.conf 2>/dev/null && echo "WARN: unexpected load_mod" || echo "NO STALE LOAD_MOD"
+test -f game/arch_base/game.conf && grep -q "title = Arch Base" game/arch_base/game.conf && echo "GAME OK"
+test -f game/arch_base/mods/arch_shader_preset/mod.conf && grep -q "name = arch_shader_preset" game/arch_base/mods/arch_shader_preset/mod.conf && echo "SHADER OK"
+
+# Identity purge: no upstream ids survive in config
+grep -ri "voxelibre_shader_preset_port\|mineclone2" game/arch_base --include="*.conf" -l && echo "FAIL: stale ids" || echo "IDS CLEAN"
 
 # Provenance recorded
-grep -q "content.mineclone2" dependencies/mods.lock && echo "PROVENANCE OK" || echo "FAIL: provenance missing"
+grep -q "content.arch_base.mineclonia" dependencies/mods.lock && grep -q "content.arch_base.voxelibre" dependencies/mods.lock && grep -q "content.arch_base.shader_preset" dependencies/mods.lock && echo "PROVENANCE OK" || echo "FAIL: provenance missing"
 
-# Headless boot on reference game via run-dev.sh (Group 0 wires --gameid; 60s loop covers first-time mapgen)
-scripts/run-dev.sh --smoke --gameid mineclone2
-test $? -eq 0 && echo "VL SMOKE EXIT OK" || echo "FAIL: vl smoke exit"
-grep -iE 'moderror|could not be found|assertion failed|segfault' /tmp/archlast-smoke.log && echo "FAIL: content errors" || echo "A0 PASS: Content bootstrap green"
+# Headless boot on merged game (60s loop covers first-time mapgen)
+scripts/run-dev.sh --smoke --gameid arch_base
+test $? -eq 0 && echo "SMOKE EXIT OK" || echo "FAIL: smoke exit"
+grep -iE 'moderror|could not be found|assertion failed|segfault' /tmp/archlast-smoke.log && echo "FAIL: content errors" || echo "A0 PASS: Base game green"
 ```
 
-Pass: game + mod placed, provenance in lock file, `run-dev.sh --smoke --gameid mineclone2` exits 0, no `ModError`/`could not be found` in `/tmp/archlast-smoke.log`.
+Pass: `game/arch_base/` placed with `Arch Base` title + `arch_shader_preset` mod, no stale upstream ids, provenance SHAs in lock file, smoke exits 0 with `listening on` and clean log.
 
 ## A1. Lua API surface callable from console
 
