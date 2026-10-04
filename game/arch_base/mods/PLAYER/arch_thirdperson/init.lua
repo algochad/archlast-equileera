@@ -14,10 +14,11 @@
 -- SPDX-License-Identifier: MIT
 
 local OFFSET_FIRST = {x = 0, y = 0, z = 0}
--- Shoulder-level default: ~0.6 nodes to the side, ~0.2 below eye height,
+-- Shoulder-level default: ~1.0 node to the side, ~0.2 below eye height,
 -- no forward push. Engine unit: 10 = 1 node. Eye is at 16.2, so y=-2
--- puts the ray at ~14.2 (~1.4 nodes, shoulder height).
-local DEFAULT_THIRD = {x = 6, y = -2, z = 0}
+-- puts the ray at ~14.2 (~1.4 nodes, shoulder height). x=10 pushes the
+-- model clear of the center crosshair.
+local DEFAULT_THIRD = {x = 10, y = -2, z = 0}
 
 -- Per-player state
 local player_tp = {}      -- name -> bool (true = third-person offset active)
