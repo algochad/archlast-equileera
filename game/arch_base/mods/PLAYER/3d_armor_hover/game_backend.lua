@@ -197,9 +197,9 @@ local mcl_player_backend = {
         end
 
         -- We need to register our own global step.
-        core.register_globalstep(function()
-            armor_hover.global_step()
-        end)
+		core.register_globalstep(function(dtime)
+			armor_hover.global_step(dtime)
+		end)
     end,
     on_joinplayer = function(self, player)
         armor_hover.model:reset_player_model(player)

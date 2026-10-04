@@ -85,7 +85,7 @@ dofile(modpath .. "/gui.lua")
 -- Conditions for Swimming, Flying(falling)   --
 --          Crouching or Climbing             --
 ------------------------------------------------
-function armor_hover.global_step()
+function armor_hover.global_step(dtime)
     for _, player in pairs(core.get_connected_players()) do
         local profile       = false
         local start_time    = profile and core.get_us_time()
