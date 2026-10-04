@@ -1,0 +1,184 @@
+-- 3D Armor Hovering Animations
+-- Copyright (C) 2020,2022  sirrobzeroone
+-- Copyright (C) 2026  Kunshan Wang
+--
+-- This library is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU Lesser General Public
+-- License as published by the Free Software Foundation; either
+-- version 2.1 of the License, or (at your option) any later version.
+--
+-- This library is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-- Lesser General Public License for more details.
+--
+-- You should have received a copy of the GNU Lesser General Public
+-- License along with this library; if not, see <https://www.gnu.org/licenses/>.
+
+----------------------------------------
+-- Get WASD, pressed = true
+
+function armor_hover.get_wasd_state(controls)
+    local rtn = false
+
+    if controls.up == true or
+        controls.down == true or
+        controls.left == true or
+        controls.right == true then
+        rtn = true
+    end
+
+    return rtn
+end
+
+----------------------------------------
+-- Get LMB and RMB, pressed = true
+
+function armor_hover.get_lrmb_state(controls)
+    local rtn = false
+
+    if controls.LMB or controls.RMB then
+        rtn = true
+    end
+
+    return rtn
+end
+
+----------------------------------------
+-- Node above solid
+
+function armor_hover.node_above_solid(pos)
+    local node_check = core.get_node({ x = pos.x, y = pos.y + 1, z = pos.z })
+    local rtn = false
+
+    if core.registered_nodes[node_check.name] then
+        local nc_draw = core.registered_nodes[node_check.name].drawtype
+
+        if nc_draw ~= "liquid" and
+            nc_draw ~= "flowingliquid" and
+            nc_draw ~= "airlike" then
+            rtn = true
+        end
+    end
+
+    return rtn
+end
+
+-----------------------------------------------
+-- Get X number nodes down drawtype and return
+-- Thanks Gundul
+function armor_hover.get_node_down_drawtype(pos, num)
+    local i = 0
+    local nodes = {}
+    local result = {}
+    while (i < num) do
+        table.insert(nodes, core.get_node({ x = pos.x, y = pos.y - i, z = pos.z }))
+        i = i + 1
+    end
+
+    local n_draw
+
+    for k, node in pairs(nodes) do
+        local n_draw
+
+        if core.registered_nodes[node.name] then
+            n_draw = core.registered_nodes[node.name].drawtype
+        else
+            n_draw = "normal"
+        end
+        table.insert(result, n_draw)
+    end
+    return result
+end
+
+-----------------------------------------------
+--  Check X number nodes down fly/swimmable
+
+function armor_hover.node_down_check(nodes, num, type)
+    local draw_ta = { "airlike" }
+    local draw_tl = { "liquid", "flowingliquid" }
+    local compare = draw_ta
+    local result = {}
+    local i = 1
+
+    if type == "s" then
+        compare = draw_tl
+    end
+
+    while (i <= num) do
+        local n_draw = nodes[i]
+
+        for k2, v2 in ipairs(compare) do
+            if n_draw == v2 then
+                table.insert(result, "t")
+            end
+        end
+        i = i + 1
+    end
+
+    if #result == num then
+        return true
+    else
+        return false
+    end
+end
+
+-- Convert a linear list to a set
+function armor_hover.list_to_set(tab)
+    local result = {}
+    for _, v in ipairs(tab) do
+        result[v] = true
+    end
+
+    return result
+end
+
+-- Linearly search a list for a value.  Return the index.
+function armor_hover.list_find(tab, elem)
+    for i, v in ipairs(tab) do
+        if v == elem then
+            return i
+        end
+    end
+    return nil
+end
+
+-- Convert a table to a list of keys.
+function armor_hover.table_to_keys(tab)
+    local result = {}
+    for k, _ in pairs(tab) do
+        table.insert(result, k)
+    end
+    return result
+end
+
+-- Make a function that always returns a given value.
+function armor_hover.const_func(value)
+    return function() return value end
+end
+
+-- Convert to boolean.  Returns either true or false.
+function armor_hover.to_boolean(value)
+    if value then
+        return true
+    else
+        return false
+    end
+end
+
+-- Check if n nodes from (including) the player's feet are flyable
+function armor_hover.nodes_down_flyable(pos, n)
+    for dy = 0, n - 1 do
+        local pos2 = pos + vector.new(0, -dy, 0)
+        local node_name = core.get_node(pos2).name
+        local node = core.registered_nodes[node_name]
+
+        -- Unknown nodes are consider non-flyable.
+        if not node then return false end
+
+        local drawtype = node.drawtype
+        if drawtype ~= "airlike" then return false end
+    end
+
+    return true
+end

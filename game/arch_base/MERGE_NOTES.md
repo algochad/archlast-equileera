@@ -72,6 +72,14 @@ Upstream: https://codeberg.org/EmoryNB/bushy_leaves @ f2a608053404ca050ce430d0b8
 8 files -> mods/ENVIRONMENT/bushy_leaves/ (init.lua, mod.conf, settingtypes.txt, README.md, LICENSE byte-identical; models/*.obj + models/license.txt byte-identical; 3 screenshots dropped, ~2MB).
 Mesh override (`drawtype=mesh`, `waving=2`, via `register_on_mods_loaded`) applies to every registered node matching `*leaves*` (except `*with_leaves*`) or `*needles*`; covers arch_base `mcl_trees:leaves_*`, `mcl_core:acacialeaves`, azalea/mangrove variants. `fix-collision-box-2` branch deliberately NOT taken: it drops the mesh approach for nodeboxes and deletes the model files.
 
+## 3D armor hover
+
+Upstream: https://github.com/wks/3d_armor_hover @ 3f4876fa7a2e5cb1625c87b49c46f29a43176f0c (LGPLv2.1 code, CC-BY-SA-3.0 model/skins).
+27 files -> mods/PLAYER/3d_armor_hover/ (7 lua + glb + 5 textures + 5 skin metas byte-identical; screenshots/images_source/models_source dropped, ~8.9MB).
+Upstream minetest-mods/3d_armor NOT vendored: arch_base already ships the fuller Mineclonia stack (mcl_armor + trims + elytra, mcl_shields, mcl_wieldview entity-based) — player_api-based upstream would duplicate armor slots and conflict.
+Arch Base compat patches (game_backend.lua mcl_player_backend only): mod.conf hard `depends = mcl_player, mcl_skins` for load order; sit/sit_mount/lay/spin_attack/fly routed through set_game_override so boats/carts/mounts/beds/cozy/elytra keep poses (mcl_playerplus still owns elytra physics); is_attached honors mcl_player.player_attached (cozy/beds conceptual attach); player_set_visibility blanks/restores skin slot (invisibility potions); player_set_armor re-fires registered_on_visual_change (mcl_meshhand hand toolcaps); hover .glb registered as mcl_player model for formspec previews.
+Known limits (upstream-admitted): wielded bow/crossbow/shield poses, slim-arms variant, and CSM client-pose path not implemented; mcl_playerplus keeps its own eye-height tables so sneak/swim eye heights differ while hover is active.
+
 ## Shader preset
 
 4 files -> mods/arch_shader_preset/; mod.conf rewritten (name=arch_shader_preset, title=Arch Shader Preset, depends=[]); init.lua/README.md/LICENSE byte-identical.

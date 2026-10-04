@@ -1,0 +1,260 @@
+-- 3D Armor Hovering Animations
+-- Copyright (C) 2026  Kunshan Wang
+--
+-- This library is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU Lesser General Public
+-- License as published by the Free Software Foundation; either
+-- version 2.1 of the License, or (at your option) any later version.
+--
+-- This library is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-- Lesser General Public License for more details.
+--
+-- You should have received a copy of the GNU Lesser General Public
+-- License along with this library; if not, see <https://www.gnu.org/licenses/>.
+
+-------------------------------------------------------------------------------
+-- This file sets the player model and plays player animations.
+
+armor_hover.model = {
+    initialize = function(self)
+    end,
+    on_joinplayer = function(self, player)
+        self:init_state(player)
+    end,
+    on_leaveplayer = function(self, player)
+    end,
+    set_animation = function(self, player, mstate, mining)
+        mining = armor_hover.to_boolean(mining)
+
+        local state = self:get_state(player)
+
+        local is_attached = armor_hover.game_backend:is_attached(player)
+        local mstate_def = armor_hover.mstates[mstate]
+        local emote = state.current_emote
+
+        local function determine_anim_name()
+            -- Emote comes first.  It will override even the "game override".
+            -- That's intentional.  It allows something like lying on a boat.
+            if emote then
+                return armor_hover.emotes[emote]
+            end
+
+            if is_attached then
+                local game_anim_name = state.game_override.anim_name
+                if game_anim_name then
+                    -- Override mining, too.
+                    mining = state.game_override.mining
+                    return game_anim_name
+                end
+
+                -- fall through
+            end
+
+            if mstate_def.configurable then
+                return armor_hover.get_chosen_anim_name(player, mstate)
+            else
+                return mstate_def.anim_name
+            end
+        end
+
+        local anim_name = determine_anim_name()
+        local anim = armor_hover.animations[anim_name]
+
+        if state.current_anim_name ~= anim_name then
+            state.current_anim_name = anim_name
+            if state.current_mtrack then
+                player:stop_animation(state.current_mtrack)
+            end
+
+            player:play_animation(anim.track, anim)
+            state.current_mtrack = anim.track
+
+            local float = armor_hover.to_boolean(anim.float)
+
+            if state.floating ~= float then
+                state.floating = float
+                if float then
+                    player:play_animation(armor_hover.floating_effect.track, armor_hover.floating_effect)
+                else
+                    player:stop_animation(armor_hover.floating_effect.track)
+                end
+            end
+
+            local cape = anim.cape
+
+            if state.cape ~= cape then
+                state.cape = cape
+                if state.current_cape_track then
+                    player:stop_animation(state.current_cape_track)
+                end
+
+                if cape then
+                    local cape_anim = armor_hover.cape_effects[cape]
+                    player:play_animation(cape_anim.track, cape_anim)
+                    state.current_cape_track = cape_anim.track
+                end
+            end
+        end
+
+        if state.mining ~= mining then
+            state.mining = mining
+            if mining then
+                player:play_animation(armor_hover.mining_animation.track, armor_hover.mining_animation)
+            else
+                player:stop_animation(armor_hover.mining_animation.track)
+            end
+        end
+
+        local look_pitch = player:get_look_vertical()
+        local track_info = armor_hover.tracks_info[anim.track]
+
+        local head_pitch = anim.lock_head and 0 or look_pitch + track_info.body_pitch + track_info.head_pitch
+        local arm_pitch = not mining and 0 or look_pitch + track_info.body_pitch
+
+        player:set_bone_override("Head", {
+            rotation = { vec = vector.new(head_pitch, 0, 0) }
+        })
+
+        player:set_bone_override("Arm_Right", {
+            rotation = { vec = vector.new(arm_pitch, 0, 0) }
+        })
+
+        -- Reset eye offset if the player was attached and is not detached.
+        -- Other mods often set eye offset when attaching a player,
+        -- and reset to (0, 0, 0) when detaching, aiming to reset the offset.
+        -- Since our eye offset is player-customizable,
+        -- we refresh the eye offset.
+        if state.is_attached and not is_attached then
+            armor_hover.refresh_eye_offset(player)
+        end
+
+        state.is_attached = armor_hover.to_boolean(is_attached)
+    end,
+    set_skin_10 = function(self, player, texture)
+        local state = self:get_state(player)
+        state.textures[1] = texture
+        state.textures[2] = self.blank_texture
+        self:reapply_player_textures(player)
+    end,
+    set_skin_18 = function(self, player, texture)
+        local state = self:get_state(player)
+        state.textures[1] = self.blank_texture
+        state.textures[2] = texture
+        self:reapply_player_textures(player)
+    end,
+    set_armor = function(self, player, texture)
+        local state = self:get_state(player)
+        state.textures[3] = texture
+        self:reapply_player_textures(player)
+    end,
+    set_wielded_item = function(self, player, texture)
+        local state = self:get_state(player)
+        state.textures[4] = texture
+        self:reapply_player_textures(player)
+    end,
+    set_hand = function(self, player, hand)
+        local state = self:get_state(player)
+        state.hand = hand
+        self:reset_hand(player)
+    end,
+    set_emote = function(self, player, emote)
+        if not armor_hover.emotes[emote] then
+            local player_name = player:get_player_name()
+            core.chat_send_player(player_name, "Invalid emote: " .. emote)
+            return
+        end
+        local state = self:get_state(player)
+        state.current_emote = emote
+    end,
+    clear_emote = function(self, player)
+        local state = self:get_state(player)
+        state.current_emote = nil
+    end,
+    -- The "game override" allows games to override the animation when the player is attached.
+    -- It can implement effects such as driving boats, riding horses, sleeping, etc.
+    set_game_override = function(self, player, anim_name, mining)
+        local state = self:get_state(player)
+        state.game_override.anim_name = anim_name
+        state.game_override.mining = armor_hover.to_boolean(mining)
+    end,
+}
+
+armor_hover.model.player_model = "3d_armor_hover_character.glb"
+armor_hover.model.blank_texture = "blank.png"
+
+function armor_hover.model:init_state(player)
+    armor_hover.player_states[player:get_player_name()].model = {
+        textures = { self.blank_texture, self.blank_texture, self.blank_texture, self.blank_texture },
+        hand = nil,
+        current_anim_name = nil,
+        mining = false,
+        floating = false,
+        current_mtrack = nil,
+        current_cape_track = nil,
+        current_emote = nil,
+        is_attached = false,
+        game_override = {
+            anim_name = nil,
+            mining = false,
+        },
+    }
+end
+
+function armor_hover.model:get_state(player)
+    return armor_hover.player_states[player:get_player_name()].model
+end
+
+local function clear_local_animation(player)
+    local none = { x = 0, y = 0 }
+    player:set_local_animation(none, none, none, none, 30)
+end
+
+-- Reset the player model.  Called when the user joins or when the model is accidentally set by other mods.
+function armor_hover.model:reset_player_model(player)
+    local state = self:get_state(player)
+    local player_model = self.player_model
+    local textures = state.textures
+    armor_hover.debug("Setting model for player '%s' to '%s'", player:get_player_name(), player_model)
+    player:set_properties({
+        mesh = player_model,
+        textures = textures,
+        visual = "mesh",
+        visual_size = { x = 1, y = 1 },
+    })
+    clear_local_animation(player)
+end
+
+-- Re-apply player textures.
+function armor_hover.model:reapply_player_textures(player)
+    local state = self:get_state(player)
+    local textures = state.textures
+    armor_hover.debug("Applying textures to player '%s'", player:get_player_name())
+    player:set_properties({
+        textures = textures,
+    })
+end
+
+-- Reset the hand model.
+function armor_hover.model:reset_hand(player)
+    local state = self:get_state(player)
+    local hand = state.hand
+    armor_hover.debug("Setting hand for player '%s'", player:get_player_name())
+
+    if armor_hover.is_hand_monoid then
+        if hand then
+            -- Note: The last one that calls add_change takes precedence.
+            -- There is no guarantee that our hand will take effect if another mod registers the hand, too.
+            hand_monoid.monoid:add_change(player, { name = hand }, "armor_hover:hand")
+        else
+            hand_monoid.monoid:del_change(player, "armor_hover:hand")
+        end
+    else
+        local inventory = player:get_inventory()
+        if inventory:get_size("hand") ~= 1 then
+            inventory:set_size("hand", 1)
+        end
+        inventory:set_stack("hand", 1, hand or "")
+    end
+end

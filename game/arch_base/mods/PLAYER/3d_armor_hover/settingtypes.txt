@@ -1,0 +1,45 @@
+#    Print extra debug info on the console or via direct message
+armor_hover.debug (Enable debugging) bool false
+
+#    Enable Fly Animation, including all hovering and slow/fast flying animations.
+armor_hover.fly_anim (Enable fly animation) bool true
+
+#    If true, a player with the "fly" privilege is considered not flying if the player is not above air blocks.
+#    Useful if the player often switches the fly mode on and off.
+#    The default is false, i.e. a player is considered flying as long as it has the "fly" privilege.
+armor_hover.check_fly (Check flyability) bool false
+
+#    Used only when "Check flyability" is true.
+#    The number of air blocks needed to be under (including) the player's feet for the player to be considered flying.
+#    The default value 3 is OK for Minetest Game.
+#    If you use any mods that increase the jump height, you should increase this value.
+armor_hover.check_fly_dist (Flyability distance) int 3 1
+
+#    Enable Fall Animation
+armor_hover.fall_anim (Enable fall animation) bool true
+
+#    If true, it will play falling animation when flying down too fast.
+#    Useful when used together with "Check flyability".
+#    The default is false, i.e. flying players never play falling animations.
+armor_hover.fly_fall (Enable falling when flying) bool false
+
+#    Terminal Velocity Speed kp/h
+armor_hover.fall_tv (Set terminal velocity speed - recommend not exceeding 150 kp/h) int 150
+
+#    Enable Swim Animation
+armor_hover.swim_anim (Enable swim animation) bool true
+
+#    Play Swim Animation even when not moving.
+#    By default (false), it will switch to the standing or hovering animation when the player is in water but not miving.
+#    If you want to take a screenshot of your character swimming, setting this to true will make it more convenient.
+armor_hover.swim_not_move (Swim animation when not moving) bool false
+
+#    Enable Climb Animation
+armor_hover.climb_anim (Enable climb animation) bool true
+
+#    When true, the "climb" animation will still be played when flying near climbables.
+#    When false, the animation selection algorithm completely ignore climbables when flying.
+armor_hover.climb_when_fly (Allow climbing when flying) bool false
+
+#    Enable Crouch/Duck Animation
+armor_hover.crouch_anim (Enable crouch/duck animation) bool true

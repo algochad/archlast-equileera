@@ -37,6 +37,15 @@ integration = byte-identical-vendor-into-mods-ENVIRONMENT-bushy_leaves
 upstream_optional_depends = default, mcl_core, nc_tree, rp_default
 note = screenshots dropped (~2MB); init.lua/mod.conf/settingtypes.txt/models byte-identical; mesh override applies to all *leaves*/*needles* nodes via on_mods_loaded
 
+[content.arch_base.3d_armor_hover]
+role = first-class-mod
+url = https://github.com/wks/3d_armor_hover.git
+sha = 3f4876fa7a2e5cb1625c87b49c46f29a43176f0c
+license = LGPLv2.1-code-plus-CC-BY-SA-3.0-assets
+integration = compat-patched-vendor-into-mods-PLAYER-3d_armor_hover
+upstream_optional_depends = player_api, br_player_model, mcl_player, mcl_skins, 3d_armor, skinsdb, tutorial_default, hand_monoid
+note = screenshots+images_source+models_source dropped (~8.9MB); lua+glb+textures+meta byte-identical except game_backend.lua Arch Base compat shims and mod.conf hard depends on mcl_player+mcl_skins
+
 [texturepack.pixel-perfection]
 role = texture-pack
 url = https://github.com/minetest-texture-packs/Pixel-Perfection
