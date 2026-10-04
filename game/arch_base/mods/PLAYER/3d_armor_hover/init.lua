@@ -108,12 +108,16 @@ function armor_hover.global_step()
 		-- Additionally, if the check_fly option is on,
 		-- we reuse the logic from the 3D Armor: Fly & Swim, that is,
 		-- a player is not considered flying if not above flyable nodes.
-		-- PATCH: also require the player to be airborne (not grounded) so that
-		-- granting fly priv via arch_auto_privs doesn't force hover anim while sprinting.
-		local is_grounded = (vel.y > -0.5 and vel.y < 0.5) and
-			core.get_node_or_nil({x = pos.x, y = pos.y - 0.5, z = pos.z}) ~= nil and
-			core.registered_nodes[core.get_node_or_nil({x = pos.x, y = pos.y - 0.5, z = pos.z}).name] ~= nil and
-			core.registered_nodes[core.get_node_or_nil({x = pos.x, y = pos.y - 0.5, z = pos.z}).name].walkable == true
+		-- PATCH: require airborne state so fly priv doesn't force hover anim while grounded.
+		-- vel.y > -2.0 covers stair stepping and 1-block drops (terminal walk speed ~4-5).
+		-- Check 0.5 and 1.5 nodes below feet for walkable ground (slopes/stairs have
+		-- air at -0.5 but solid at -1.5).
+		local node_below_05 = core.get_node_or_nil({x = pos.x, y = pos.y - 0.5, z = pos.z})
+		local node_below_15 = core.get_node_or_nil({x = pos.x, y = pos.y - 1.5, z = pos.z})
+		local ndef_05 = node_below_05 and core.registered_nodes[node_below_05.name]
+		local ndef_15 = node_below_15 and core.registered_nodes[node_below_15.name]
+		local has_ground = (ndef_05 and ndef_05.walkable) or (ndef_15 and ndef_15.walkable)
+		local is_grounded = vel.y > -2.0 and has_ground
 		local fly           = privs.fly and not is_grounded and
 			(not check_fly or armor_hover.nodes_down_flyable(pos, check_fly_dist))
 
