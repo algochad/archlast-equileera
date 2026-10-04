@@ -1466,7 +1466,11 @@ local function verify_loot_table (name, loot)
 
 		local stack = ItemStack (item.itemstring)
 		if not core.registered_items[stack:get_name ()] then
-			core.log ("error", "Item does not exist: " .. stack:get_name ())
+			-- Arch Base: some loot items register after villages loads (Mineclonia
+			-- has no depends edge villages->providers, and adding one creates a
+			-- cycle via mcl_raids->mcl_villages). Defer to on_mods_loaded so all
+			-- mods are registered before validation.
+			loot._deferred_check = true
 		end
 	end
 end
@@ -1478,6 +1482,21 @@ end
 for name, loot in pairs (type_loot_tables) do
 	verify_loot_table (name, loot)
 end
+
+core.register_on_mods_loaded(function()
+	local function recheck (name, loot)
+		if not loot._deferred_check then return end
+		loot._deferred_check = nil
+		for _, item in ipairs (loot.items) do
+			local stack = ItemStack (item.itemstring)
+			if not core.registered_items[stack:get_name ()] then
+				core.log ("error", "Item does not exist: " .. stack:get_name ())
+			end
+		end
+	end
+	for name, loot in pairs (schematic_loot_tables) do recheck (name, loot) end
+	for name, loot in pairs (type_loot_tables) do recheck (name, loot) end
+end)
 
 local level_to_minetest_position = mcl_levelgen.level_to_minetest_position
 local v = vector.zero ()

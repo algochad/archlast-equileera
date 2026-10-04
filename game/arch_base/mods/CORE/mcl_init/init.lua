@@ -30,6 +30,9 @@ mcl_vars.inventory_header = ""
 -- Tool wield size
 mcl_vars.tool_wield_scale = { x = 1.8, y = 1.8, z = 1 }
 
+-- Arch Base compat: VoxeLibre donor mods expect these (VL mcl_init provides them)
+mcl_vars.hud_type_field = core.features["hud_def_type_field"] and "type" or "hud_elem_type"
+
 -- Mapgen variables
 local mg_name = core.get_mapgen_setting("mg_name")
 local minecraft_height_limit = 320
