@@ -85,6 +85,28 @@ minetest.register_on_respawnplayer(function(player)
 	apply_offset(player)
 end)
 
+-- Re-assert shoulder offset every frame if another mod (3d_armor_hover, mcl_cozy)
+-- overwrote it, but yield to mounts/sleep (player:get_attach() ~= nil).
+local reassert_accum = 0
+minetest.register_globalstep(function(dtime)
+	reassert_accum = reassert_accum + dtime
+	if reassert_accum < 0.2 then return end -- throttle to 5Hz
+	reassert_accum = 0
+	for _, player in ipairs(minetest.get_connected_players()) do
+		local name = player:get_player_name()
+		if player_tp[name] and not player:get_attach() then
+			-- Check if mcl_cozy has this player in a seated/sleeping state
+			local cozy_active = false
+			if mcl_cozy and mcl_cozy.players and mcl_cozy.players[name] then
+				cozy_active = true
+			end
+			if not cozy_active then
+				apply_offset(player)
+			end
+		end
+	end
+end)
+
 minetest.register_chatcommand("thirdperson", {
 	description = "Toggle third-person shoulder camera. Usage: /thirdperson [on|off|reset|get|x y z]",
 	privs = {},
