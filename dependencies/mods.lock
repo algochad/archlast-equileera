@@ -57,3 +57,51 @@ supported_games_upstream = minetest_game
 integration = same-basename-copy-into-arch_base-mods
 same_name_files_copied = 128
 note = upstream pack targets minetest_game default/* names; only same-basename files applied; mcl_* game textures keep Mineclonia art
+
+[content.arch_base.asuna_default_aliases]
+role = compat-shim
+url = n/a-local
+sha = n/a
+license = MIT
+integration = local-shim-mod-COMPAT-asuna_default_aliases
+note = maps default:* to mcl_core:* + provides default.node_sound_* globals for geodes/bakedclay/tms; must load before geodes/bakedclay/too_many_stones
+
+[content.arch_base.geodes]
+role = first-class-mod
+url = https://github.com/asuna-mt/geodes
+sha = c97407f6082dbd09f71a4db78c5b6c7b1fc0f417
+license = LGPLv3-code-plus-CC-BY-SA-3.0-textures
+integration = compat-patched-vendor-into-mods-MISC-geodes
+note = sound-shim via asuna_default_aliases default.node_sound_stone_defaults global; mod.conf depends changed to asuna_default_aliases+mcl_sounds; .git/.xcf/screenshots/blockbench-json dropped
+
+[content.arch_base.bakedclay]
+role = first-class-mod
+url = https://github.com/asuna-mt/bakedclay
+sha = a227f767015a5b31cd91086375b03e4d367682b1
+license = MIT
+integration = compat-patched-vendor-into-mods-ITEMS-bakedclay
+note = item-alias default:clay->mcl_core:clay, default:cactus->mcl_core:cactus, default:clay_brick->mcl_core:brick; dry_shrub craft line removed (no arch_base equivalent); lucky_block.lua default:chest->mcl_chests:chest; mod.conf depends changed to asuna_default_aliases+mcl_sounds+mcl_dye; .git/.xcf/screenshots/blockbench-json dropped
+
+[content.arch_base.too_many_stones]
+role = first-class-mod
+url = https://github.com/asuna-mt/too_many_stones
+sha = 4f06463d7715850b77845a14285ed67e49294422
+license = LGPLv2.1
+integration = compat-patched-vendor-into-mods-MISC-too_many_stones
+note = optional_depends adds asuna_default_aliases; default:-guarded crafting block in crafting.lua skipped safely via get_modpath("default") nil check; mapgen.lua default: refs guarded; wherein=mapgen_stone resolves via arch_base alias; .git/.xcf/screenshots/blockbench-json dropped
+
+[content.arch_base.animalia]
+role = first-class-mod
+url = https://github.com/asuna-mt/animalia
+sha = f4549e4d6f3fcab077353a16886caa6c70d48753
+license = MIT
+integration = compat-patched-vendor-into-mods-ENTITIES-animalia
+note = asuna global shim injected at top of init.lua (asuna.content.menagerie.animals=true, asuna.features.animals returns empty table, asuna.biomes returns {name="unknown"}); optional_depends adds asuna_default_aliases; creatura hard dep kept; .git/.xcf/screenshots/blockbench-json dropped
+
+[content.arch_base.livingslimes]
+role = first-class-mod
+url = https://github.com/asuna-mt/livingslimes
+sha = 6e62b7ce70e314be7fac5636d7ec6314d51a6c62
+license = GPLv3-code-plus-CC-BY-SA-4.0-media
+integration = compat-patched-vendor-into-mods-ENTITIES-livingslimes
+note = asuna gate shim injected at top of init.lua (asuna.content.menagerie.slimes=true) so slimes-enabled gate passes; optional_depends adds asuna_default_aliases+mcl_fire; creatura hard dep kept; .git/.xcf/screenshots/blockbench-json dropped

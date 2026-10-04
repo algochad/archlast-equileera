@@ -159,13 +159,12 @@ core.register_alias("bakedclay:terracotta_light_blue", "bakedclay:terracotta_cya
 core.register_craft({
 	type = "cooking",
 	output = "bakedclay:natural",
-	recipe = "default:clay"
+	recipe = "mcl_core:clay"
 })
 
 -- register a few extra dye colour options
 
-core.register_craft({ output = "dye:green 4", recipe = {{"default:cactus"}} })
-core.register_craft({ output = "dye:brown 4", recipe = {{"default:dry_shrub"}} })
+core.register_craft({ output = "dye:green 4", recipe = {{"mcl_core:cactus"}} })
 
 -- only add light grey recipe if unifieddye mod isnt present (conflict)
 
@@ -185,7 +184,7 @@ end
 -- 2x2 red baked clay makes 16x clay brick
 
 core.register_craft( {
-	output = "default:clay_brick 16",
+	output = "mcl_core:brick 16",
 	recipe = {
 		{"bakedclay:red", "bakedclay:red"},
 		{"bakedclay:red", "bakedclay:red"}

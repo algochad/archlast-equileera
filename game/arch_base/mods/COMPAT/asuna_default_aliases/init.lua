@@ -52,6 +52,9 @@ if core.get_modpath("mcl_sounds") then
 	default.node_sound_defaults = function(t)
 		return mcl_sounds.node_sound_defaults(t)
 	end
+	default.node_sound_leaves_defaults = function(t)
+		return mcl_sounds.node_sound_defaults(t)
+	end
 else
 	core.log("warning", "[asuna_default_aliases] mcl_sounds not found; sound helpers not provided")
 end

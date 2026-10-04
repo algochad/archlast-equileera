@@ -4488,25 +4488,6 @@ elseif too_many_stones.mods.base_earth then
 		},
 	})
 
--- Picture Jasper
-
-	register_ore_by_climate({
-		ore_type        = "blob",
-		ore             = "too_many_stones:picture_jasper",
-		wherein         = {"mapgen_stone", "base_earth:desert_stone"},
-		clust_scarcity  = 80 * 80 * 80,
-		clust_size      = 4,
-		y_max           = -1000,
-		y_min           = -31000,
-		noise_threshold = 0.0,
-		noise_params    = {
-			offset = 0.5,
-			scale = 0.2,
-			spread = {x = 5, y = 5, z = 5},
-			octaves = 1,
-			persist = 0.0
-		},
-	})
 
 -- Prasiolite
 
@@ -7010,25 +6991,6 @@ else
 		},
 	})
 
--- Picture Jasper
-
-	register_ore_by_climate({
-		ore_type        = "blob",
-		ore             = "too_many_stones:picture_jasper",
-		wherein         = {"mapgen_stone"},
-		clust_scarcity  = 80 * 80 * 80,
-		clust_size      = 4,
-		y_max           = -1000,
-		y_min           = -31000,
-		noise_threshold = 0.0,
-		noise_params    = {
-			offset = 0.5,
-			scale = 0.2,
-			spread = {x = 5, y = 5, z = 5},
-			octaves = 1,
-			persist = 0.0
-		},
-	})
 
 -- Prasiolite
 

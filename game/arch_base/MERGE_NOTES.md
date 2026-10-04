@@ -119,3 +119,103 @@ Arch Base compat patches:
 | stamina | default-dep | depends on minetest_game default player API; incompatible with mcl_player backend |
 | soup | default-dep | references default food/hunger APIs absent in Mineclonia |
 | flowerpot | default-dep | registers against default nodes; no mcl_flowers mapping |
+
+## Asuna wave 3 (NEEDS-SHIM: geodes, bakedclay, too_many_stones, animalia, livingslimes + asuna_default_aliases shim)
+
+Upstream collection: https://github.com/asuna-mt/asuna @ 0cb527a96cf744bb012be33a7759f84ff45d6be1 (MIT). Five mods vendored with a shared compat shim mod created locally.
+
+### asuna_default_aliases (local shim)
+
+Local mod at mods/COMPAT/asuna_default_aliases/ (no upstream). Zero depends. Registers `minetest.register_alias` mappings from default:* to mcl_core:* / mcl_chests:* for names confirmed present in arch_base. Also provides `default.node_sound_stone_defaults()` and `default.node_sound_defaults()` globals (guarded by `core.get_modpath("mcl_sounds")`) so geodes/bakedclay/too_many_stones can call them without hard-depending on mcl_sounds directly. Must load before geodes, bakedclay, too_many_stones.
+
+Alias table (confirmed targets):
+
+| default:* | arch_base target |
+|---|---|
+| stone | mcl_core:stone |
+| dirt | mcl_core:dirt |
+| dirt_with_grass | mcl_core:dirt_with_grass |
+| stick | mcl_core:stick |
+| clay | mcl_core:clay |
+| clay_lump | mcl_core:clay_lump |
+| cactus | mcl_core:cactus |
+| chest | mcl_chests:chest |
+| glass | mcl_core:glass |
+| sand | mcl_core:sand |
+| sandstone | mcl_core:sandstone |
+| gravel | mcl_core:gravel |
+| silver_sand | mcl_core:silver_sand |
+| brick | mcl_core:brick |
+| stonebrick | mcl_core:stonebrick |
+| desert_sand | mcl_core:sand |
+| desert_stone | mcl_core:stone |
+| desert_sandstone | mcl_core:sandstone |
+
+Unaliased default:* names (intentionally skipped — no safe arch_base equivalent; get_modpath("default")-guarded blocks in too_many_stones/bakedclay no-op safely):
+
+- default:steel_ingot — no mcl_core steel ingot (Mineclonia uses mcl_core:iron_ingot but name mismatch would break crafts expecting "steel")
+- default:mese_shard — no mese in Mineclonia
+- default:dry_shrub — no dry shrub node in arch_base
+- default:permafrost — no permafrost in Mineclonia
+- default:silver_sandstone — no silver sandstone variant
+- default:desert_sandstone — aliased to mcl_core:sandstone above (sandstone variant); listed here only if distinct node needed
+
+### geodes
+
+Submodule: https://github.com/asuna-mt/geodes @ c97407f6082dbd09f71a4db78c5b6c7b1fc0f417 (asuna-v1.1.5, LGPLv3 code + CC-BY-SA-3.0 textures).
+Files -> mods/MISC/geodes/ (.git/.xcf/screenshots/blockbench-json dropped).
+Arch Base compat patches:
+
+| file | change | reason |
+|---|---|---|
+| `mod.conf` | `depends = default` -> `depends = asuna_default_aliases, mcl_sounds` | upstream hard-depends on minetest_game default; arch_base uses shim + mcl_sounds for sound defs |
+| `init.lua` | `default.node_sound_stone_defaults()` resolves via global shim | no code change needed; shim provides the function |
+
+### bakedclay
+
+Submodule: https://github.com/asuna-mt/bakedclay @ a227f767015a5b31cd91086375b03e4d367682b1 (asuna-v1.1.5, MIT).
+Files -> mods/ITEMS/bakedclay/ (.git/.xcf/screenshots/blockbench-json dropped).
+Arch Base compat patches:
+
+| file | change | reason |
+|---|---|---|
+| `mod.conf` | `depends = default` -> `depends = asuna_default_aliases, mcl_sounds, mcl_dye` | upstream hard-depends on default; arch_base uses shim + Mineclonia dye/sounds |
+| `init.lua:162` | `default:clay` -> `mcl_core:clay` | direct node ref in craft registration |
+| `init.lua:167` | `default:cactus` -> `mcl_core:cactus` | direct node ref in craft registration |
+| `init.lua:168` | `default:dry_shrub` craft line REMOVED | no dry_shrub in arch_base; craft would fail registration |
+| `init.lua:188` | `default:clay_brick` -> `mcl_core:brick` | direct node ref in craft registration |
+| `lucky_block.lua:30,48` | `default:chest` -> `mcl_chests:chest` | loot table node refs |
+
+### too_many_stones
+
+Submodule: https://github.com/asuna-mt/too_many_stones @ 4f06463d7715850b77845a14285ed67e49294422 (asuna-v1.1.5, LGPLv2.1).
+Files -> mods/MISC/too_many_stones/ (.git/.xcf/screenshots/blockbench-json dropped).
+Arch Base compat patches:
+
+| file | change | reason |
+|---|---|---|
+| `mod.conf` | optional_depends adds `asuna_default_aliases` | upstream has no explicit default dep; shim ensures aliases available if loaded |
+| `crafting.lua ~2660` | NO PATCH — `get_modpath("default")` guard | entire default:-prefixed crafting block skipped when default absent (safe no-op) |
+| `mapgen.lua` | NO PATCH — default: refs inside src tables guarded | mapgen ore/decoration definitions reference default: nodes only when default present; wherein="mapgen_stone" resolves via arch_base alias |
+
+### animalia
+
+Submodule: https://github.com/asuna-mt/animalia @ f4549e4d6f3fcab077353a16886caa6c70d48753 (asuna-v1.1.5, MIT).
+Files -> mods/ENTITIES/animalia/ (.git/.xcf/screenshots/blockbench-json dropped).
+Arch Base compat patches:
+
+| file | change | reason |
+|---|---|---|
+| `mod.conf` | optional_depends adds `asuna_default_aliases`; hard `depends = creatura` kept | upstream depends on creatura (present in arch_base); shim optional for default: node refs |
+| `init.lua` (top) | asuna global shim injected | `asuna = asuna or {content={menagerie={animals=true}}, features={animals=setmetatable({},{__index=function() return {} end})}, biomes=setmetatable({},{__index=function() return {name="unknown"} end})}` — makes asuna.features.animals[x] return {} (no biome restriction, spawns everywhere), asuna.content.menagerie.animals=true, asuna.biomes returns fallback |
+
+### livingslimes
+
+Submodule: https://github.com/asuna-mt/livingslimes @ 6e62b7ce70e314be7fac5636d7ec6314d51a6c62 (asuna-v1.1.5, GPLv3 code + CC-BY-SA-4.0 media).
+Files -> mods/ENTITIES/livingslimes/ (.git/.xcf/screenshots/blockbench-json dropped).
+Arch Base compat patches:
+
+| file | change | reason |
+|---|---|---|
+| `mod.conf` | optional_depends adds `asuna_default_aliases, mcl_fire`; hard `depends = creatura` kept | upstream depends on creatura; mcl_fire optional for fire slime variants; shim optional |
+| `init.lua` (top) | asuna gate shim injected | `asuna = asuna or {content={menagerie={slimes=true}}}` — gate at ~line 58 `if not asuna.content.menagerie.slimes` evaluates false, slimes enabled |

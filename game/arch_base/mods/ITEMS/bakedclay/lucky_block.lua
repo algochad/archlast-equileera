@@ -27,7 +27,7 @@ lucky_block:add_blocks({
 		p .. "dark_green", p .. "dark_grey", p .. "green", p .. "grey", p .. "magenta",
 		p .. "orange", p .. "pink", p .. "red", p .. "violet", p .. "white", p .. "yellow"
 	}, 2},
-	{"nod", "default:chest", 0, {
+	{"nod", "mcl_chests:chest", 0, {
 		{name = p .. "natural", max = 20},
 		{name = p .. "black", max = 20},
 		{name = p .. "blue", max = 20},
@@ -45,7 +45,7 @@ lucky_block:add_blocks({
 		{name = p .. "white", max = 20},
 		{name = p .. "yellow", max = 20}
 	}},
-	{"nod", "default:chest", 0, {
+	{"nod", "mcl_chests:chest", 0, {
 		{name = p2 .. "black", max = 20},
 		{name = p2 .. "blue", max = 20},
 		{name = p2 .. "brown", max = 20},

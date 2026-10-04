@@ -76,10 +76,9 @@ minetest.register_lbm({
         run_at_every_load = true,
         action = function(pos, node)
 		
-		if (#geode_types == 0) then
-			minetest.log('THE GEODES MOD REQUIRES AT LEAST ONE MOD THAT ADDS GEODES TO FUNCTION. PLEASE MAKE SURE THAT THE "amethyst_geodes" MOD IS ENABLED, OR ANOTHER MOD THAT USES THE API IS ENABLED.')
-			return
-		end
+		-- Arch Base: mcl_amethyst uses its own mapgen, not this API.
+		-- Suppress the "requires at least one mod" warning to avoid log/chat spam.
+		if (#geode_types == 0) then return end
 
 		local pcgr = PcgRandom(minetest.hash_node_position(pos))
 		local outer, middle, inner, crystal, fill, size_min, size_max = unpack(geode_types[math.random(1, #geode_types)])
