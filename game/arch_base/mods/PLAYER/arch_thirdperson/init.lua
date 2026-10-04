@@ -11,11 +11,7 @@
 -- holding an item" branch pitches Arm_Right_Pitch_Control forward).
 -- Select an empty hotbar slot or use F5 third-person-back view and the arm rests.
 -- Stand keyframes (frames 0-79) are neutral; this mod never drives arm bones.
--- Turn-speed "motion feel": true per-pixel motion blur is impossible from Lua
--- (no post-effect API; bloom/exposure in set_lighting can't smear frames).
--- Instead this mod widens FOV proportional to yaw rate via mcl_fovapi, which
--- reads as speed/blur on turns in ALL view modes (first + third person).
--- Tunables below; /thirdperson blur <amount 0..10|off> live-tunes it.
+-- SPDX-License-Identifier: MIT
 
 local OFFSET_FIRST = {x = 0, y = 0, z = 0}
 -- Shoulder-level default: ~1.0 node to the side, ~0.2 below eye height,
@@ -27,31 +23,6 @@ local DEFAULT_THIRD = {x = 10, y = -2, z = 0}
 -- Per-player state
 local player_tp = {}      -- name -> bool (true = third-person offset active)
 local player_offset = {}  -- name -> {x,y,z}
-
--- Turn-blur tuning (FOV multiplier widens with yaw rate; eases back when still)
-local BLUR_MOD_NAME = "arch_thirdperson:turn_blur"
-local BLUR_DEFAULT_AMOUNT = 5        -- default 0..10 scale
-local BLUR_MAX_MULT = 1.18           -- FOV multiplier at full deflection (amount=10)
-local BLUR_YAW_FULL = 4.5            -- rad/s yaw rate that counts as "full" turn
-local BLUR_APPLY_TIME = 0.12         -- fovapi transition seconds when engaging
-local BLUR_RESET_TIME = 0.35         -- fovapi transition seconds when easing back
-local BLUR_IDLE_CUTOFF = 0.35        -- below this rad/s, blur eases out
-
-local player_blur = {}    -- name -> amount 0..10 (0 = off)
-local player_last_yaw = {}-- name -> last get_look_horizontal()
-local player_blur_on = {} -- name -> bool (modifier currently applied)
-
--- Register the FOV modifier (mcl_fovapi loads before us via depends).
-if minetest.global_exists("mcl_fovapi") then
-	mcl_fovapi.register_modifier({
-		name = BLUR_MOD_NAME,
-		fov_factor = 1.0, -- placeholder; real value set per update below
-		time = BLUR_APPLY_TIME,
-		reset_time = BLUR_RESET_TIME,
-		is_multiplier = true,
-		exclusive = false,
-	})
-end
 
 local function copy_offset(o)
 	return {x = o.x, y = o.y, z = o.z}
@@ -89,67 +60,6 @@ local function apply_offset(player)
 		player:set_eye_offset(OFFSET_FIRST, OFFSET_FIRST, OFFSET_FIRST)
 	end
 end
--- Turn-speed blur: widen FOV with yaw rate (all view modes), ease back idle.
--- fovapi-compliant: mutate the registered modifier's fov_factor, apply/remove.
-local function update_turn_blur(player, dtime)
-	if not player or not player:is_player() then return end
-	if not minetest.global_exists("mcl_fovapi") then return end
-	if dtime <= 0 then return end
-	local name = player:get_player_name()
-	local amount = player_blur[name]
-	if amount == nil then amount = BLUR_DEFAULT_AMOUNT end
-	if amount <= 0 then
-		if player_blur_on[name] then
-			mcl_fovapi.remove_modifier(player, BLUR_MOD_NAME)
-			player_blur_on[name] = false
-		end
-		player_last_yaw[name] = player:get_look_horizontal()
-		return
-	end
-	local yaw = player:get_look_horizontal()
-	local last = player_last_yaw[name]
-	player_last_yaw[name] = yaw
-	if last == nil then return end
-	-- Shortest-arc yaw delta (handles -pi/pi wrap)
-	local dyaw = yaw - last
-	if dyaw > math.pi then dyaw = dyaw - 2 * math.pi end
-	if dyaw < -math.pi then dyaw = dyaw + 2 * math.pi end
-	local rate = math.abs(dyaw) / dtime
-	if rate < BLUR_IDLE_CUTOFF then
-		if player_blur_on[name] then
-			mcl_fovapi.remove_modifier(player, BLUR_MOD_NAME, BLUR_RESET_TIME)
-			player_blur_on[name] = false
-		end
-		return
-	end
-	local deflection = math.min(rate / BLUR_YAW_FULL, 1.0)
-	local strength = (amount / 10) * deflection
-	local mult = 1.0 + (BLUR_MAX_MULT - 1.0) * strength
-	mcl_fovapi.registered_modifiers[BLUR_MOD_NAME].fov_factor = mult
-	if not player_blur_on[name] then
-		mcl_fovapi.apply_modifier(player, BLUR_MOD_NAME, BLUR_APPLY_TIME)
-		player_blur_on[name] = true
-	else
-		-- Already applied: re-apply refreshed factor (fovapi skips if present,
-		-- so remove+apply to push the new multiplier).
-		mcl_fovapi.remove_modifier(player, BLUR_MOD_NAME, 0)
-		mcl_fovapi.apply_modifier(player, BLUR_MOD_NAME, BLUR_APPLY_TIME)
-	end
-end
-
--- Drive blur from the player globalstep (runs for every player each tick).
-if minetest.global_exists("mcl_player") and mcl_player.register_globalstep then
-	mcl_player.register_globalstep(function(player, dtime)
-		update_turn_blur(player, dtime)
-	end)
-else
-	minetest.register_globalstep(function(dtime)
-		for _, player in ipairs(minetest.get_connected_players()) do
-			update_turn_blur(player, dtime)
-		end
-	end)
-end
-
 
 minetest.register_on_joinplayer(function(player)
 	local name = player:get_player_name()
@@ -159,11 +69,6 @@ minetest.register_on_joinplayer(function(player)
 		player_offset[name] = copy_offset(DEFAULT_THIRD)
 	end
 	apply_offset(player)
-	if player_blur[name] == nil then
-		player_blur[name] = BLUR_DEFAULT_AMOUNT
-	end
-	player_last_yaw[name] = nil
-	player_blur_on[name] = false
 	minetest.log("action", "[ARCH:CAMERA] third-person ON for " .. name
 		.. " offset=(" .. offset_to_string(player_offset[name]) .. ")")
 end)
@@ -172,9 +77,6 @@ minetest.register_on_leaveplayer(function(player)
 	local name = player:get_player_name()
 	player_tp[name] = nil
 	player_offset[name] = nil
-	player_blur[name] = nil
-	player_last_yaw[name] = nil
-	player_blur_on[name] = nil
 end)
 
 -- Eye offsets can be reset by death/detach flows; re-apply ours on respawn.
@@ -184,7 +86,7 @@ minetest.register_on_respawnplayer(function(player)
 end)
 
 minetest.register_chatcommand("thirdperson", {
-	description = "Third-person shoulder camera + turn-blur. Usage: /thirdperson [on|off|reset|get|x y z|blur [get|off|<0..10>]]",
+	description = "Toggle third-person shoulder camera. Usage: /thirdperson [on|off|reset|get|x y z]",
 	privs = {},
 	func = function(name, param)
 		local player = minetest.get_player_by_name(name)
@@ -201,38 +103,6 @@ minetest.register_chatcommand("thirdperson", {
 			return true, string.format("Third-person: %s offset=(%s)",
 				on and "ON" or "OFF", offset_to_string(off))
 		end
-		if cmd == "blur" then
-			local sub = args[2]
-			if sub == "get" or sub == nil then
-				local amt = player_blur[name]
-				if amt == nil then amt = BLUR_DEFAULT_AMOUNT end
-				return true, string.format("Turn blur: %s (amount %g/10)",
-					amt > 0 and "ON" or "OFF", amt)
-			end
-			if sub == "off" then
-				player_blur[name] = 0
-				if player_blur_on[name] and minetest.global_exists("mcl_fovapi") then
-					local pl = minetest.get_player_by_name(name)
-					if pl then mcl_fovapi.remove_modifier(pl, BLUR_MOD_NAME) end
-					player_blur_on[name] = false
-				end
-				return true, "Turn blur: OFF"
-			end
-			local amt = tonumber(sub)
-			if amt then
-				amt = math.max(0, math.min(10, amt))
-				player_blur[name] = amt
-				minetest.log("action", "[ARCH:CAMERA] " .. name
-					.. " turn blur amount=" .. amt)
-				if amt > 0 then
-					return true, string.format("Turn blur: ON (amount %g/10)", amt)
-				else
-					return true, "Turn blur: OFF"
-				end
-			end
-			return false, "Usage: /thirdperson blur [get|off|<0..10>]"
-		end
-
 
 		if cmd == "reset" then
 			player_tp[name] = true
@@ -268,7 +138,7 @@ minetest.register_chatcommand("thirdperson", {
 				return true, "Third-person camera: ON ("
 					.. offset_to_string(player_offset[name]) .. ")"
 			else
-				return false, "Usage: /thirdperson [on|off|reset|get|x y z|blur [get|off|<0..10>]]"
+				return false, "Usage: /thirdperson [on|off|reset|get|x y z]"
 			end
 		end
 
@@ -286,6 +156,6 @@ minetest.register_chatcommand("thirdperson", {
 			end
 		end
 
-		return false, "Usage: /thirdperson [on|off|reset|get|x y z|blur [get|off|<0..10>]]"
+		return false, "Usage: /thirdperson [on|off|reset|get|x y z]"
 	end,
 })
