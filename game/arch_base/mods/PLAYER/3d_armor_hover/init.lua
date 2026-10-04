@@ -102,14 +102,20 @@ function armor_hover.global_step()
 
         local privs         = core.get_player_privs(player:get_player_name())
 
-        -- Is the player flying?
-        -- Currently the server has no way to test if the client has enabled fly (freemove) mode,
-        -- so we just use the "fly" privilege.
-        -- Additionally, if the check_fly option is on,
-        -- we reuse the logic from the 3D Armor: Fly & Swim, that is,
-        -- a player is not considered flying if not above flyable nodes.
-        local fly           = privs.fly and
-            (not check_fly or armor_hover.nodes_down_flyable(pos, check_fly_dist))
+		-- Is the player flying?
+		-- Currently the server has no way to test if the client has enabled fly (freemove) mode,
+		-- so we just use the "fly" privilege.
+		-- Additionally, if the check_fly option is on,
+		-- we reuse the logic from the 3D Armor: Fly & Swim, that is,
+		-- a player is not considered flying if not above flyable nodes.
+		-- PATCH: also require the player to be airborne (not grounded) so that
+		-- granting fly priv via arch_auto_privs doesn't force hover anim while sprinting.
+		local is_grounded = (vel.y > -0.5 and vel.y < 0.5) and
+			core.get_node_or_nil({x = pos.x, y = pos.y - 0.5, z = pos.z}) ~= nil and
+			core.registered_nodes[core.get_node_or_nil({x = pos.x, y = pos.y - 0.5, z = pos.z}).name] ~= nil and
+			core.registered_nodes[core.get_node_or_nil({x = pos.x, y = pos.y - 0.5, z = pos.z}).name].walkable == true
+		local fly           = privs.fly and not is_grounded and
+			(not check_fly or armor_hover.nodes_down_flyable(pos, check_fly_dist))
 
         local attached_to   = armor_hover.game_backend:is_attached(player)
 
