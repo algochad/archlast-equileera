@@ -146,15 +146,18 @@ ui.register_page("craft", {
 		}
 	local n = #formspec + 1
 	-- Mineclonia armor/offhand column (left of the craft grid).
-	-- style_full: craft_x=2.8 so armor at 0.3-0.55 clears the tab buttons
-	-- at main_button_y=11.0 and the std_inv list starting at std_inv_y=5.75.
-	local armor_x = 0.3
-	local armor_y0 = crafty - 0.55
+	-- ui.imgscale is 1.25: one slot cell is 1.25 wide, so 1.25 spacing
+	-- keeps icon, list slot, overlay, and neighbors from overlapping.
+	-- y0 sits a full cell below the "Crafting" label so the helmet slot
+	-- is never clipped by the formspec top edge at any gui_scaling.
+	local cell = ui.imgscale
+	local armor_x = 0.35
+	local armor_y0 = crafty + 0.75
 	local armor_slots = {"helmet","chestplate","leggings","boots"}
 	for i = 1, 4 do
-		local y = armor_y0 + (i - 1) * 1.25
+		local y = armor_y0 + (i - 1) * cell
 		formspec[n] = string.format("list[current_player;armor;%f,%f;1,1;%d]",
-			armor_x, y, i + 1)
+			armor_x + ui.list_img_offset, y + ui.list_img_offset, i + 1)
 		n = n + 1
 		if inv:get_stack("armor", i + 1):is_empty() then
 			formspec[n] = string.format("image[%f,%f;1,1;mcl_inventory_empty_armor_slot_%s.png]",
@@ -162,17 +165,18 @@ ui.register_page("craft", {
 			n = n + 1
 		end
 	end
-	-- Offhand slot below the armor column.
-	local off_y = armor_y0 + 4 * 1.25 + 0.25
-	formspec[n] = string.format("list[current_player;offhand;%f,%f;1,1]", armor_x, off_y)
+	-- Offhand slot below the armor column, one gap cell further down.
+	local off_y = armor_y0 + 4 * cell + 0.5
+	formspec[n] = string.format("list[current_player;offhand;%f,%f;1,1]",
+		armor_x + ui.list_img_offset, off_y + ui.list_img_offset)
 	n = n + 1
 	if inv:get_stack("offhand", 1):is_empty() then
 		formspec[n] = string.format("image[%f,%f;1,1;mcl_inventory_empty_armor_slot_shield.png]",
 			armor_x, off_y)
 		n = n + 1
 	end
-	-- Sorter quick-equip slot: kept off-form (zero-size) so the old
-	-- move-to-sorter logic keeps working without covering the std_inv list.
+	-- Sorter quick-equip slot: kept off-form so the old move-to-sorter
+	-- logic keeps working without covering the std_inv list.
 	formspec[n] = "list[current_player;sorter;-10,-10;1,1]"
 	n = n + 1
 	-- Trash / Refill (upstream positions, right of the craft grid)
@@ -200,9 +204,10 @@ ui.register_page("craft", {
 	formspec[n+8] = "listring[current_player;main]"
 	n = n + 9
 	-- Mineclonia button row (recipe book, help, advancements, settings).
-	-- Sits just above the std_inv list (std_inv_y=5.75 full / 4.6 lite)
-	-- and below the trash slot, so it never covers inventory slots.
-	local btn_y = perplayer_formspec.std_inv_y - 1.35
+	-- Anchored to std_inv_y (not craft_y): one full cell above the main
+	-- inventory list, so it clears the armor/offhand column, the trash
+	-- slot, and the first inventory row at every gui_scaling.
+	local btn_y = perplayer_formspec.std_inv_y - cell - 0.15
 	local btn_x = craftx + 0.5
 	if core.get_modpath("mcl_craftguide") then
 		formspec[n] = string.format("image_button[%f,%f;1.1,1.1;craftguide_book.png;__mcl_craftguide;]", btn_x, btn_y)
