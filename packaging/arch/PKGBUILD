@@ -1,0 +1,66 @@
+# Maintainer: Archlast <https://github.com/algochad/archlast-equileera>
+pkgname=archlast
+pkgver=5.17.0
+pkgrel=1
+pkgdesc='Archlast survival sandbox RPG (Luanti fork + arch_base game)'
+arch=('x86_64')
+url='https://github.com/algochad/archlast-equileera'
+license=('LGPL-2.1-or-later' 'GPL-3.0-or-later' 'CC-BY-SA-3.0' 'CC-BY-SA-4.0' 'MIT')
+depends=('curl' 'libvorbis' 'sqlite' 'openal' 'hicolor-icon-theme' 'desktop-file-utils'
+         'xdg-utils' 'freetype2' 'luajit' 'postgresql-libs' 'libspatialindex' 'jsoncpp'
+         'libgl' 'libjpeg-turbo' 'libxi' 'sdl2' 'leveldb' 'hiredis' 'ncurses' 'libzip'
+         'zstd' 'gettext')
+makedepends=('cmake' 'ninja' 'git')
+provides=('luanti' 'minetest')
+conflicts=('luanti' 'luanti-server' 'luanti-common' 'minetest')
+source=('archlast-equileera::git+https://github.com/algochad/archlast-equileera.git')
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$srcdir/archlast-equileera"
+  grep -E '^set\(VERSION_(MAJOR|MINOR|PATCH)' engine/archlast-luanti/CMakeLists.txt \
+    | grep -oP '\d+' | paste -sd. -
+}
+
+prepare() {
+  cd "$srcdir/archlast-equileera"
+  git submodule update --init --recursive
+}
+
+build() {
+  cmake -B "$srcdir/build" -S "$srcdir/archlast-equileera/engine/archlast-luanti" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DRUN_IN_PLACE=FALSE \
+    -DBUILD_CLIENT=TRUE \
+    -DBUILD_SERVER=TRUE \
+    -DBUILD_UNITTESTS=FALSE \
+    -DBUILD_BENCHMARKS=FALSE \
+    -DVERSION_EXTRA=archlast \
+    -DENABLE_GETTEXT=TRUE \
+    -DENABLE_LEVELDB=TRUE \
+    -DENABLE_REDIS=TRUE \
+    -DENABLE_SPATIAL=TRUE \
+    -DENABLE_POSTGRESQL=TRUE
+  for flag in USE_LEVELDB USE_REDIS USE_SPATIAL USE_POSTGRESQL; do
+    grep -q "#define $flag 1" "$srcdir/build/src/cmake_config.h" \
+      || { echo "ERROR: $flag disabled — missing backend lib"; exit 1; }
+  done
+  cmake --build "$srcdir/build" --parallel "$(( $(nproc) + 1 ))"
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install "$srcdir/build"
+  mkdir -p "$pkgdir/usr/share/luanti/games"
+  cp -r "$srcdir/archlast-equileera/game/arch_base" "$pkgdir/usr/share/luanti/games/arch_base"
+  ln -sf luanti "$pkgdir/usr/bin/archlast"
+  ln -sf luantiserver "$pkgdir/usr/bin/archlast-server"
+  install -Dm644 "$srcdir/archlast-equileera/packaging/arch/archlast.desktop" \
+    "$pkgdir/usr/share/applications/archlast.desktop"
+  install -Dm644 "$srcdir/archlast-equileera/engine/archlast-luanti/misc/luanti.svg" \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/archlast.svg"
+  install -Dm644 "$srcdir/archlast-equileera/engine/archlast-luanti/misc/luanti-xorg-icon-128.png" \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/archlast.png"
+  install -Dm644 "$srcdir/archlast-equileera/engine/archlast-luanti/misc/luanti-icon-24x24.png" \
+    "$pkgdir/usr/share/icons/hicolor/24x24/apps/archlast.png"
+}

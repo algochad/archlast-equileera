@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Archlast
+GenericName=Survival Sandbox RPG
+Comment=Archlast survival sandbox RPG (Luanti engine + arch_base game)
+Exec=archlast --gameid arch_base
+Icon=archlast
+Terminal=false
+Type=Application
+Categories=Game;Simulation;
+StartupNotify=false
+StartupWMClass=archlast
+Keywords=sandbox;world;mining;crafting;blocks;survival;rpg;archlast;
