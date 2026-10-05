@@ -144,79 +144,87 @@ ui.register_page("craft", {
 			perplayer_formspec.craft_grid,
 			"label["..formheaderx..","..formheadery..";" ..F(S("Crafting")).."]",
 		}
-		local n = #formspec + 1
-		-- Armor slots (Mineclonia uses indices 2-5; index 1 is unused/legacy)
-		local armor_slots = {"helmet","chestplate","leggings","boots"}
-		for i = 1, 4 do
-			formspec[n] = string.format("list[current_player;armor;%f,%f;1,1;%d]",
-				craftx - 3.5, crafty - 0.5 + (i-1)*1.25, i+1)
-			n = n + 1
-			if inv:get_stack("armor", i+1):is_empty() then
-				formspec[n] = string.format("image[%f,%f;1,1;mcl_inventory_empty_armor_slot_%s.png]",
-					craftx - 3.5, crafty - 0.5 + (i-1)*1.25, armor_slots[i])
-				n = n + 1
-			end
-		end
-		-- Offhand slot
-		formspec[n] = string.format("list[current_player;offhand;%f,%f;1,1]", craftx - 3.5, crafty + 4.75)
+	local n = #formspec + 1
+	-- Mineclonia armor/offhand column (left of the craft grid).
+	-- style_full: craft_x=2.8 so armor at 0.3-0.55 clears the tab buttons
+	-- at main_button_y=11.0 and the std_inv list starting at std_inv_y=5.75.
+	local armor_x = 0.3
+	local armor_y0 = crafty - 0.55
+	local armor_slots = {"helmet","chestplate","leggings","boots"}
+	for i = 1, 4 do
+		local y = armor_y0 + (i - 1) * 1.25
+		formspec[n] = string.format("list[current_player;armor;%f,%f;1,1;%d]",
+			armor_x, y, i + 1)
 		n = n + 1
-		if inv:get_stack("offhand", 1):is_empty() then
-			formspec[n] = string.format("image[%f,%f;1,1;mcl_inventory_empty_armor_slot_shield.png]",
-				craftx - 3.5, crafty + 4.75)
+		if inv:get_stack("armor", i + 1):is_empty() then
+			formspec[n] = string.format("image[%f,%f;1,1;mcl_inventory_empty_armor_slot_%s.png]",
+				armor_x, y, armor_slots[i])
 			n = n + 1
 		end
-		-- Sorter quick-equip slot (invisible helper)
-		formspec[n] = string.format("list[current_player;sorter;%f,%f;1,1]", craftx + 6.25, crafty + 4.75)
+	end
+	-- Offhand slot below the armor column.
+	local off_y = armor_y0 + 4 * 1.25 + 0.25
+	formspec[n] = string.format("list[current_player;offhand;%f,%f;1,1]", armor_x, off_y)
+	n = n + 1
+	if inv:get_stack("offhand", 1):is_empty() then
+		formspec[n] = string.format("image[%f,%f;1,1;mcl_inventory_empty_armor_slot_shield.png]",
+			armor_x, off_y)
 		n = n + 1
-		-- Trash / Refill
-		if ui.trash_enabled or ui.is_creative(player_name) or core.get_player_privs(player_name).give then
-			formspec[n] = string.format("label[%f,%f;%s]", craftx + 6.35, crafty + 2.3, F(S("Trash:")))
-			formspec[n+1] = ui.make_trash_slot(craftx + 6.25, crafty + 2.5)
-			n = n + 2
-		end
-		if ui.is_creative(player_name) then
-			formspec[n] = ui.single_slot(craftx - 2.5, crafty + 2.5)
-			formspec[n+1] = string.format("label[%f,%f;%s]", craftx - 2.4, crafty + 2.3, F(S("Refill:")))
-			formspec[n+2] = string.format("list[detached:%srefill;main;%f,%f;1,1;]",
-				F(player_name), craftx - 2.5 + ui.list_img_offset, crafty + 2.5 + ui.list_img_offset)
-			n = n + 3
-		end
-		-- Listrings: main <-> craft <-> armor <-> offhand <-> sorter
-		formspec[n] = "listring[current_player;main]"
-		formspec[n+1] = "listring[current_player;craft]"
-		formspec[n+2] = "listring[current_player;main]"
-		formspec[n+3] = "listring[current_player;armor]"
-		formspec[n+4] = "listring[current_player;main]"
-		formspec[n+5] = "listring[current_player;offhand]"
-		formspec[n+6] = "listring[current_player;main]"
-		formspec[n+7] = "listring[current_player;sorter]"
-		formspec[n+8] = "listring[current_player;main]"
-		n = n + 9
-		-- Buttons row (recipe book, help, advancements, settings)
-		local btn_y = crafty + 4.75
-		local btn_x = craftx + 0.5
-		if core.get_modpath("mcl_craftguide") then
-			formspec[n] = string.format("image_button[%f,%f;1.1,1.1;craftguide_book.png;__mcl_craftguide;]", btn_x, btn_y)
-			formspec[n+1] = string.format("tooltip[__mcl_craftguide;%s]", F(S("Recipe book")))
-			btn_x = btn_x + 1.25
-			n = n + 2
-		end
-		if core.get_modpath("doc") then
-			formspec[n] = string.format("image_button[%f,%f;1.1,1.1;doc_button_icon_lores.png;__mcl_doc;]", btn_x, btn_y)
-			formspec[n+1] = string.format("tooltip[__mcl_doc;%s]", F(S("Help")))
-			btn_x = btn_x + 1.25
-			n = n + 2
-		end
-		if core.get_modpath("awards") then
-			formspec[n] = string.format("image_button[%f,%f;1.1,1.1;mcl_achievements_button.png;__mcl_achievements;]", btn_x, btn_y)
-			formspec[n+1] = string.format("tooltip[__mcl_achievements;%s]", F(S("Advancements")))
-			btn_x = btn_x + 1.25
-			n = n + 2
-		end
-		formspec[n] = string.format("image_button[%f,%f;1.1,1.1;mcl_player_settings.png;__mcl_player_settings;]", btn_x, btn_y)
-		formspec[n+1] = string.format("tooltip[__mcl_player_settings;%s]", F(S("Player settings")))
+	end
+	-- Sorter quick-equip slot: kept off-form (zero-size) so the old
+	-- move-to-sorter logic keeps working without covering the std_inv list.
+	formspec[n] = "list[current_player;sorter;-10,-10;1,1]"
+	n = n + 1
+	-- Trash / Refill (upstream positions, right of the craft grid)
+	if ui.trash_enabled or ui.is_creative(player_name) or core.get_player_privs(player_name).give then
+		formspec[n] = string.format("label[%f,%f;%s]", craftx + 6.35, crafty + 2.3, F(S("Trash:")))
+		formspec[n+1] = ui.make_trash_slot(craftx + 6.25, crafty + 2.5)
 		n = n + 2
-		return {formspec=table.concat(formspec)}
+	end
+	if ui.is_creative(player_name) then
+		formspec[n] = ui.single_slot(craftx - 2.5, crafty + 2.5)
+		formspec[n+1] = string.format("label[%f,%f;%s]", craftx - 2.4, crafty + 2.3, F(S("Refill:")))
+		formspec[n+2] = string.format("list[detached:%srefill;main;%f,%f;1,1;]",
+			F(player_name), craftx - 2.5 + ui.list_img_offset, crafty + 2.5 + ui.list_img_offset)
+		n = n + 3
+	end
+	-- Listrings: main <-> craft <-> armor <-> offhand <-> sorter
+	formspec[n] = "listring[current_player;main]"
+	formspec[n+1] = "listring[current_player;craft]"
+	formspec[n+2] = "listring[current_player;main]"
+	formspec[n+3] = "listring[current_player;armor]"
+	formspec[n+4] = "listring[current_player;main]"
+	formspec[n+5] = "listring[current_player;offhand]"
+	formspec[n+6] = "listring[current_player;main]"
+	formspec[n+7] = "listring[current_player;sorter]"
+	formspec[n+8] = "listring[current_player;main]"
+	n = n + 9
+	-- Mineclonia button row (recipe book, help, advancements, settings).
+	-- Sits just above the std_inv list (std_inv_y=5.75 full / 4.6 lite)
+	-- and below the trash slot, so it never covers inventory slots.
+	local btn_y = perplayer_formspec.std_inv_y - 1.35
+	local btn_x = craftx + 0.5
+	if core.get_modpath("mcl_craftguide") then
+		formspec[n] = string.format("image_button[%f,%f;1.1,1.1;craftguide_book.png;__mcl_craftguide;]", btn_x, btn_y)
+		formspec[n+1] = string.format("tooltip[__mcl_craftguide;%s]", F(S("Recipe book")))
+		btn_x = btn_x + 1.25
+		n = n + 2
+	end
+	if core.get_modpath("doc") then
+		formspec[n] = string.format("image_button[%f,%f;1.1,1.1;doc_button_icon_lores.png;__mcl_doc;]", btn_x, btn_y)
+		formspec[n+1] = string.format("tooltip[__mcl_doc;%s]", F(S("Help")))
+		btn_x = btn_x + 1.25
+		n = n + 2
+	end
+	if core.get_modpath("awards") then
+		formspec[n] = string.format("image_button[%f,%f;1.1,1.1;mcl_achievements_button.png;__mcl_achievements;]", btn_x, btn_y)
+		formspec[n+1] = string.format("tooltip[__mcl_achievements;%s]", F(S("Advancements")))
+		btn_x = btn_x + 1.25
+		n = n + 2
+	end
+	formspec[n] = string.format("image_button[%f,%f;1.1,1.1;mcl_player_settings.png;__mcl_player_settings;]", btn_x, btn_y)
+	formspec[n+1] = string.format("tooltip[__mcl_player_settings;%s]", F(S("Player settings")))
+	n = n + 2
 	end,
 })
 

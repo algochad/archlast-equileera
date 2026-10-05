@@ -329,3 +329,61 @@ core.register_craft_predict(function(itemstack, player, old_craft_grid, inv)
 		core.chat_send_player(player:get_player_name(), S("Crafting table out of range!"))
 	end
 end)
+
+-------------------------------------------------------------------------
+-- Sorter quick-equip (from deleted mcl_inventory/survival.lua):
+-- moving a stack to the hidden sorter list either equips armor via
+-- mcl_armor or shuttles hotbar<->inventory. Puts/takes are blocked so
+-- only moves trigger it.
+-------------------------------------------------------------------------
+local function ui_find_empty_inv_slots(inv)
+	local main, hotbar
+	for i, stack in pairs(inv:get_list("main")) do
+		if i > 9 and not main and stack:is_empty() then
+			main = i
+		elseif i <= 9 and not hotbar and stack:is_empty() then
+			hotbar = i
+		end
+		if hotbar and main then break end
+	end
+	return main, hotbar
+end
+
+core.register_on_player_inventory_action(function(player, action, inv, info)
+	if action == "move" and info.to_list == "sorter" then
+		local stack = inv:get_stack(info.to_list, info.to_index)
+		local empty_main, empty_hotbar = ui_find_empty_inv_slots(inv)
+		if core.get_item_group(stack:get_name(), "armor") > 0 then
+			local newstack = mcl_armor.equip(stack, player, true)
+			if newstack and not newstack:is_empty() then
+				if inv:get_stack(info.from_list, info.from_index):is_empty() then
+					inv:set_stack(info.from_list, info.from_index, newstack)
+				elseif inv:room_for_item(info.from_list, newstack) then
+					inv:add_item(info.from_list, newstack)
+				end
+			end
+		elseif info.from_list == "main" and info.from_index <= 9 and empty_main then
+			inv:set_stack("main", empty_main, stack)
+		elseif info.from_list == "main" and info.from_index > 9 and empty_hotbar then
+			inv:set_stack("main", empty_hotbar, stack)
+		else
+			inv:set_stack(info.from_list, info.from_index, stack)
+		end
+		inv:set_stack("sorter", 1, ItemStack(""))
+	end
+end)
+
+core.register_allow_player_inventory_action(function(_, action, inv, info)
+	if info.to_list == "sorter" or info.from_list == "sorter" or info.listname == "sorter" then
+		if action == "put" or action == "take" then return 0 end
+		local stack = inv:get_stack(info.from_list, info.from_index)
+		local empty_main, empty_hotbar = ui_find_empty_inv_slots(inv)
+		if core.get_item_group(stack:get_name(), "armor") > 0 then
+			return 1
+		elseif (info.from_list == "main" and info.from_index <= 9 and empty_main)
+			or (info.from_list == "main" and info.from_index > 9 and empty_hotbar) then
+			return stack:get_count()
+		end
+		return 0
+	end
+end)

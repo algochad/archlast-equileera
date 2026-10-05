@@ -3,7 +3,7 @@ local ui = unified_inventory
 
 -- Arch Base / Mineclonia: categories use mcl_* item names instead of default:*
 unified_inventory.register_category('plants', {
-	symbol = "mcl_flowers:tulip",
+	symbol = "mcl_flowers:tulip_red",
 	label = S("Plant Life")
 })
 unified_inventory.register_category('building', {
@@ -15,7 +15,7 @@ unified_inventory.register_category('tools', {
 	label = S("Tools")
 })
 unified_inventory.register_category('minerals', {
-	symbol = "mcl_core:iron_lump",
+	symbol = "mcl_raw_ores:raw_iron",
 	label = S("Minerals and Metals")
 })
 unified_inventory.register_category('environment', {
@@ -119,16 +119,16 @@ ui.register_on_initialized(register_automatic_categorization)
 -- Explicit mineral additions for Mineclonia ores/ingots
 unified_inventory.add_category_items('minerals', {
 	"mcl_core:coal_lump",
-	"mcl_core:iron_lump",
-	"mcl_core:gold_lump",
+	"mcl_raw_ores:raw_iron",
+	"mcl_raw_ores:raw_gold",
+	"mcl_core:gold_ingot",
 	"mcl_core:diamond",
 	"mcl_core:emerald",
-	"mcl_core:lapis_lazuli",
-	"mcl_core:redstone",
-	"mcl_core:quartz",
-	"mcl_core:netherite_scrap",
+	"mcl_core:lapis",
+	"mcl_redstone:redstone",
+	"mcl_nether:quartz",
+	"mcl_nether:netherite_scrap",
 	"mcl_core:iron_ingot",
-	"mcl_core:gold_ingot",
-	"mcl_core:copper_ingot",
+	"mcl_copper:copper_ingot",
 	"mcl_nether:netherite_ingot",
 })
