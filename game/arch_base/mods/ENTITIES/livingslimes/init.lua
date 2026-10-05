@@ -1,4 +1,8 @@
-asuna = asuna or {content={menagerie={slimes=true}}}
+-- asuna shim: keep additive so load order with animalia/asuna_default_aliases is safe
+asuna = asuna or {}
+asuna.content = asuna.content or {}
+asuna.content.menagerie = asuna.content.menagerie or {}
+if asuna.content.menagerie.slimes == nil then asuna.content.menagerie.slimes = true end
 -- Globals
 livingslimes = {
   storage = minetest.get_mod_storage(),

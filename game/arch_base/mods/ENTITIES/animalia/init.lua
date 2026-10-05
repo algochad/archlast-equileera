@@ -1,5 +1,12 @@
 -- luacheck: ignore asuna
-asuna = asuna or {content={menagerie={animals=true}}, features={animals=setmetatable({},{__index=function() return {} end})}, biomes=setmetatable({},{__index=function() return {name="unknown"} end})}
+-- asuna shim: keep additive so load order with livingslimes/asuna_default_aliases is safe
+asuna = asuna or {}
+asuna.content = asuna.content or {}
+asuna.content.menagerie = asuna.content.menagerie or {}
+if asuna.content.menagerie.animals == nil then asuna.content.menagerie.animals = true end
+asuna.features = asuna.features or {}
+asuna.features.animals = asuna.features.animals or setmetatable({}, {__index=function() return {} end})
+asuna.biomes = asuna.biomes or setmetatable({}, {__index=function() return {name="unknown"} end})
 animalia = {}
 
 local path = minetest.get_modpath("animalia")

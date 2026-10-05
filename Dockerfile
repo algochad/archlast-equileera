@@ -21,20 +21,21 @@ RUN apk add --no-cache \
     ninja \
     linux-headers
 
-# Build LuaJIT
+# Build LuaJIT (luajit.org uses dumb http — shallow clone unsupported)
 WORKDIR /usr/src
-RUN git clone --depth 1 --branch v2.1 https://luajit.org/git/luajit.git && \
+RUN git clone --branch v2.1 https://luajit.org/git/luajit.git && \
     cd luajit && \
     make amalg && \
     make install
 
-# Build prometheus-cpp (optional but included upstream)
+# Build prometheus-cpp (ENABLE_PULL=OFF avoids civetweb pull dep when not needed)
 RUN git clone --depth 1 --branch master https://github.com/jupp0r/prometheus-cpp.git && \
     cd prometheus-cpp && \
     cmake -B build \
         -DCMAKE_INSTALL_PREFIX=/usr/local \
         -DCMAKE_BUILD_TYPE=Release \
         -DENABLE_TESTING=0 \
+        -DENABLE_PULL=OFF \
         -GNinja && \
     cmake --build build && \
     cmake --install build
@@ -98,8 +99,8 @@ COPY --from=engine-builder /usr/local/lib/libspatialindex* /usr/local/lib/
 COPY --from=engine-builder /usr/local/lib/libluajit* /usr/local/lib/
 COPY --from=engine-builder /usr/local/share/luanti /usr/local/share/luanti
 
-# Copy game content (arch_base)
-COPY --chown=archlast:archlast game/arch_base /home/archlast/.minetest/games/archlast/game/arch_base
+# Copy game content (arch_base) — gameid is directory name `arch_base`
+COPY --chown=archlast:archlast game/arch_base /home/archlast/.minetest/games/arch_base
 
 # Create default world directory
 RUN mkdir -p /home/archlast/.minetest/world && \
@@ -108,7 +109,6 @@ RUN mkdir -p /home/archlast/.minetest/world && \
 # Copy example config as base
 COPY --from=engine-builder /usr/local/share/doc/luanti/minetest.conf.example /etc/minetest.conf
 
-# Default minetest.conf for dedicated server
 RUN cat > /home/archlast/minetest.conf <<'EOF'
 # Archlast Server Configuration
 port = 30000
@@ -116,7 +116,7 @@ bind_address = 0.0.0.0
 server_name = Archlast Server
 server_description = Archlast Survival Sandbox RPG
 max_users = 20
-default_game = archlast
+default_game = arch_base
 world = /home/archlast/.minetest/world
 EOF
 

@@ -1,10 +1,18 @@
 -- Asuna Default Aliases shim
 -- Maps minetest_game default:* node/item names to arch_base mcl_* equivalents
 -- for vendored Asuna mods (geodes, bakedclay, too_many_stones, animalia, livingslimes).
--- Intentionally unaliased names (no arch_base equivalent; consumers are get_modpath("default")-guarded):
---   default:steel_ingot, default:mese_shard, default:dry_shrub, default:permafrost,
---   default:silver_sandstone, default:desert_sandstone, default:desert_stone,
---   default:desert_sand, default:desert_cobble
+-- Also provides the `asuna` global that Asuna mods expect (content/features/biomes)
+-- so load order between animalia/livingslimes doesn't matter.
+
+-- Central asuna global - keep additive so any load order is safe
+asuna = asuna or {}
+asuna.content = asuna.content or {}
+asuna.content.menagerie = asuna.content.menagerie or {}
+if asuna.content.menagerie.animals == nil then asuna.content.menagerie.animals = true end
+if asuna.content.menagerie.slimes == nil then asuna.content.menagerie.slimes = true end
+asuna.features = asuna.features or {}
+asuna.features.animals = asuna.features.animals or setmetatable({}, {__index = function() return {} end})
+asuna.biomes = asuna.biomes or setmetatable({}, {__index = function() return {name = "unknown"} end})
 
 local core = minetest
 

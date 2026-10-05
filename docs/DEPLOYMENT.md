@@ -48,17 +48,17 @@ docker compose logs -f archlast-server
    ```
    SERVER_NAME=Your Server Name
    MAX_USERS=20
-   GAME_ID=archlast
+   GAME_ID=arch_base
    ```
 
 4. **Configure volumes:**
    - Ensure the `archlast-world` volume is persisted (Coolify handles this automatically for named volumes)
 
-5. **Deploy** — Coolify will build from the `Dockerfile` and deploy using `docker-compose.yml`
+5. **Deploy** — Coolify will build from the `Dockerfile` at the repo root and deploy using `docker-compose.yml`
 
 ### Configuration
 
-Mount a custom `minetest.conf` to override defaults:
+Create a `minetest.conf` in the repo root to override defaults (uncomment the volume line in `docker-compose.yml`):
 
 ```conf
 # minetest.conf
@@ -66,14 +66,14 @@ port = 30000
 server_name = My Archlast Server
 server_description = Custom Archlast Experience
 max_users = 50
-default_game = archlast
+default_game = arch_base
 ```
 
 ### Volume Structure
 
 The container persists data at:
 - `/home/archlast/.minetest/world` — World data, maps, player inventories
-- `/home/archlast/minetest.conf` — Server configuration (mounted read-only)
+- `/home/archlast/minetest.conf` — Server configuration (baked at build; mount read-only via `- ./minetest.conf:/home/archlast/minetest.conf:ro` if you create one)
 
 ### Health Checks
 
@@ -93,5 +93,6 @@ The container includes a health check that verifies the server is listening. In 
 - Check file permissions inside the container
 
 **Game not loading:**
-- Confirm `LUANTI_GAME_PATH` points to the correct game directory
-- Check `debug.txt` for mod load errors
+- Check `debug.txt` for mod load errors: `docker compose logs -f archlast-server`
+- Verify the image contains the game: `docker run --rm archlast-server ls /home/archlast/.minetest/games/arch_base/game.conf`
+- Ensure `default_game` matches the `GAME_ID` in your config (default: `arch_base`)
