@@ -319,7 +319,7 @@ function mcl_shields.add_wear (obj, damage, blockstack, n)
 		obj:set_wielded_item(shieldstack)
 	else
 		obj:get_inventory():set_stack("offhand", 1, shieldstack)
-		mcl_inventory.update_inventory_formspec(obj)
+		unified_inventory.update_inventory(obj)
 	end
 	return true
 end

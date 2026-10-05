@@ -53,7 +53,7 @@ mcl_damage.register_modifier(function(obj, damage, reason)
 						wield:take_item()
 						if in_offhand then
 							obj:get_inventory():set_stack("offhand", 1, wield)
-							mcl_inventory.update_inventory_formspec(obj)
+ unified_inventory.update_inventory(obj)
 						else
 							obj:set_wielded_item(wield)
 						end

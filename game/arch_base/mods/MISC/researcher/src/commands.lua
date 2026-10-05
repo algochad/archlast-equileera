@@ -5,14 +5,10 @@ local show_formspec = (function()
       sfinv.set_page(player,"researcher:player_research")
       return "Use the inventory (default key 'i') to perform research."
     end
-  elseif researcher.dependencies.mcl_inventory then
-    return function(name)
-      return "Use the inventory (default key 'i') to perform research."
-    end
-  elseif researcher.dependencies.unified_inventory then
-    return function(name)
-      return "Use the inventory (default key 'i') to perform research."
-    end
+ elseif researcher.dependencies.unified_inventory then
+   return function(name)
+     return "Use the inventory (default key 'i') to perform research."
+   end
   elseif researcher.dependencies.i3 then
     return function(name)
       local player = minetest.get_player_by_name(name)

@@ -47,7 +47,7 @@ read_globals = {
           "tnt", "mcl_cherry_blossom", "mcl_portals", "mcl_chests", "mcl_shields",
           "mcl_wip", "mcl_raids", "mcl_moon", "lightning", "mcl_weather",
           "mcl_formspec", "mcl_death_messages", "mcl_bossbars", "awards",
-          "mcl_inventory", "mcl_title", "mcl_offhand", "hb", "mcl_experience",
+          "unified_inventory", "mcl_title", "mcl_offhand", "hb", "mcl_experience",
           "mcl_info", "mcl_credits", "tsm_railcorridors", "mcl_mapgen_core",
           "mcl_structures", "settlements", "mcl_dungeons", "mcl_colors_official"
 }

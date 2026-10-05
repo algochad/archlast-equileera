@@ -76,7 +76,6 @@ researcher = {
     for _,mod in ipairs({
       "default",
       "mcl_sounds",
-      "mcl_inventory",
       "sfinv",
       "awards",
       "unified_inventory",

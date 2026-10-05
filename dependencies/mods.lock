@@ -105,3 +105,13 @@ sha = 6e62b7ce70e314be7fac5636d7ec6314d51a6c62
 license = GPLv3-code-plus-CC-BY-SA-4.0-media
 integration = compat-patched-vendor-into-mods-ENTITIES-livingslimes
 note = asuna gate shim injected at top of init.lua (asuna.content.menagerie.slimes=true) so slimes-enabled gate passes; optional_depends adds asuna_default_aliases+mcl_fire; creatura hard dep kept; .git/.xcf/screenshots/blockbench-json dropped
+
+[content.arch_base.unified_inventory]
+role = first-class-mod
+url = https://github.com/minetest-mods/unified_inventory.git
+branch = master
+sha = 3679debe1404fd04b5a8ef3b585ac18bb5ccc60e
+license = LGPLv2.1-code-plus-CC-BY-SA-3.0-assets
+integration = compat-patched-vendor-into-mods-HUD-unified_inventory
+upstream_optional_depends = default, creative, sfinv, datastorage
+note = .github/.gitignore/screenshot.png dropped; api.lua is_creative delegates to core.is_creative_enabled; internal.lua set_inventory_formspec routes through mcl_player dispatcher (priority 0); callbacks.lua joinplayer sets main/craft/offhand/sorter sizes + hotbar art; register.lua craft page adds armor(2-5)+offhand+sorter slots with listrings and Mineclonia buttons (craftguide/doc/awards/settings); mineclonia_creative_compat.lua preserves infinite-place/handle_node_drops/stack-fill/touch-refresh/gamemode-change/visual-change/settings-return-button from deleted mcl_inventory/creative.lua; default-categories.lua rewritten for mcl_* item names; give_and_take + update_inventory helpers added to api.lua; mod.conf depends=mcl_player,mcl_gamemode,mcl_formspec,mcl_util,mcl_meshhand optional=mcl_armor,mcl_offhand,mcl_craftguide,mcl_doc,awards,mcl_achievements,tt; all mcl_inventory textures retained in unified_inventory/textures/

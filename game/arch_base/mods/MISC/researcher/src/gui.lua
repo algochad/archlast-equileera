@@ -59,57 +59,6 @@ local get_ui = (function()
       progress_bar or "")
     end
 
-  -- Get Mineclonia/VoxelLibre formspec
-  elseif researcher.dependencies.mcl_inventory then
-    return function(player_name)
-      local data = researcher.get_formspec_data(player_name)
-
-      local status_string = "hypertext[1,2.75;4.5,4;;<global halign=center>(place item above to analyze)]"
-      if data.last_result then
-        status_string = "hypertext[1,2.75;4.5,4;;<global halign=center><i>Research successful!</i>\n\n" .. data.last_result .. "]"
-      end
-
-      local progress_bar = data.subject.image and string.format([[
-        box[6.55,4.41;%f,0.73;#00ff00]
-        image[6.5,4.4;3.725,0.75;researcher_research_points_border.png;7]
-        hypertext[6.1,4.325;4.5,0.9;;<global valign=middle halign=center><b>Level %s</b>%s]
-      ]],
-      data.is_max_level and 3.66 or (3.66 * (data.current_points / data.points_to_next_level)),
-      data.is_max_level and "MAX" or (data.subject.research and data.subject.research.level or 1),
-      data.is_max_level and "" or ("\n" .. (data.subject.research and data.subject.research.points or 0) .. " / " .. researcher.get_points_to_next_level(player_name,data.subject.item.name)))
-
-      local decor = data.is_inventory_empty and "inactive" or "active"
-
-      return format_formspec([[
-        -- Background boxes; research/duplication on the left, info/progress on the right
-        box[1,0.2;4.5,5.1;#00000040]
-        box[6.1,0.2;4.5,5.1;#00000040]
-
-        -- Player's 1x1 research inventory with optional research/duplication button
-        -- at the bottom
-        image[2.75,1;1,1;researcher_gui_hb_bg.png]
-        image[2.25,0.5;2,2;researcher_research_inventory_decor_%s.png]
-        list[current_player;research;2.75,1;1,1;0]
-        listring[current_player;main]
-        listring[current_player;research]
-        %s
-
-        -- Current research item image, name, and groups
-        item_image[7.325,0.4;2,2;%s]
-        hypertext[6.1,2.5;4.5,0.5;;<global halign=center size=18><b>%s</b>]
-        box[6.5,2.8;3.75,0.001;#00000099]
-        hypertext[6.1,2.9;4.5,1.5;;<global halign=center>%s]
-
-        -- Research level/points progress bar
-        %s
-      ]],
-      decor,
-      data.is_inventory_empty and status_string or string.format("button[1.25,4.4;4,0.75;%s;%s]",data.is_max_level and "duplicate" or "research",data.is_max_level and "Duplicate" or "Research"),
-      data.subject.image or "",
-      data.subject.description,
-      data.subject.research and data.subject.groups or "(research to learn item groups)",
-      progress_bar or "")
-    end
 
   -- Get Unified Inventory formspec
   elseif researcher.dependencies.unified_inventory then
@@ -291,17 +240,12 @@ local refresh_ui = (function()
       sfinv.set_player_inventory_formspec(player,sfinv.get_or_create_context(player))
     end
 
-  -- Refresh Mineclone formspec
-  elseif researcher.dependencies.mcl_inventory then 
-    return function(player)
-      mcl_inventory.update_inventory_formspec(player)
-    end
-
   -- Refresh Unified Inventory formspec
   elseif researcher.dependencies.unified_inventory then
     return function(player)
-      unified_inventory.set_inventory_formspec(player,"Research")
+      unified_inventory.update_inventory(player)
     end
+
 
   -- Refresh i3 formspec
   elseif researcher.dependencies.i3 then
@@ -412,20 +356,6 @@ if researcher.dependencies.sfinv and sfinv.enabled and not researcher.dependenci
     end,
   })
 
--- Configure Mineclonia/VoxelLibre UI
-elseif researcher.dependencies.mcl_inventory then
-  mcl_inventory.register_survival_inventory_tab({
-    id = "research",
-    description = "Research",
-    item_icon = "researcher:research_table",
-    show_inventory = true,
-    build = function(player)
-      return get_ui(player:get_player_name())
-    end,
-    handle = function(player, fields)
-      do_research(player,fields)
-    end,
-  })
 
 -- Configure Unified Inventory UI
 elseif researcher.dependencies.unified_inventory then
