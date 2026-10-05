@@ -1,6 +1,6 @@
-# Archlast Linux installers
+# Archlast installers
 
-Three formats, one Release engine + `arch_base` game (`5.17.0-archlast`).
+Release engine + `arch_base` game (`5.17.0-archlast`) for Linux and Windows.
 
 ## Quick start
 
@@ -8,12 +8,14 @@ Three formats, one Release engine + `arch_base` game (`5.17.0-archlast`).
 |---|---|---|
 | Arch | `makepkg -si` in `packaging/arch/` (or AUR) | `sudo pacman -U archlast-*.pkg.tar.zst` |
 | Debian/Ubuntu | `packaging/deb/build-deb-docker.sh` (needs docker) | `sudo apt install ./dist/archlast-*-amd64.deb` |
-| Portable | `packaging/appimage/build-appimage.sh` | extract `dist/*-appdir.tar.zst`, run `AppDir/AppRun` (or `.AppImage` if appimagetool present) |
+| Portable (Linux) | `packaging/appimage/build-appimage.sh` | extract `dist/*-appdir.tar.zst`, run `AppDir/AppRun` (or `.AppImage` if appimagetool present) |
+| Windows (exe) | `packaging/windows/build-windows.sh` (needs MSVC/MinGW + vcpkg + NSIS) | run `dist/archlast-*-win64.exe` or extract ZIP fallback |
 
 Run: `archlast --gameid arch_base` · server: `archlast-server --gameid arch_base --world <path>`.
 
 ## Files
 
+### Linux
 - `packaging/package-linux.sh` — shared Release stage (`dist/stage/` + `dist/*.tar.zst`).
   Extra dep prefix: `CMAKE_PREFIX_PATH=/path/to/prefix`.
 - `packaging/arch/PKGBUILD` + `archlast.desktop` — AUR-style source package.
@@ -22,6 +24,13 @@ Run: `archlast --gameid arch_base` · server: `archlast-server --gameid arch_bas
   compiles inside `debian:trixie-slim` so ABIs (jsoncpp, curl, …) match.
 - `packaging/appimage/build-appimage.sh` — AppDir with bundled `.so`s.
   Non-system deps: `EXTRA_LIB_DIRS=/path/to/lib`.
+
+### Windows
+- `packaging/windows/build-windows-docker.sh` + `Dockerfile.build` — **recommended**: cross-compiles
+  native Windows `.exe` from Linux using MSYS2 MINGW64 inside Docker. No Windows host needed.
+  Output: `dist/archlast-<ver>-win64.exe` (NSIS installer) + `dist/archlast-<ver>-win64-portable.zip`.
+- `packaging/windows/build-windows.sh` — native Windows build (run on Windows host with MSVC/MinGW + vcpkg + NSIS).
+  Fallback when Docker is unavailable. Output: same as above, or ZIP if `makensis` absent.
 
 ## Verified
 

@@ -1,0 +1,42 @@
+# Archlast Windows cross-compile builder (MinGW-w64 + vcpkg on Ubuntu)
+# Cross-compiles native Windows .exe from Linux host.
+# vcpkg builds all deps from source for the x64-mingw-dynamic triplet.
+# Usage: see build-windows-docker.sh
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install MinGW-w64 cross-compiler, build tools, and vcpkg prerequisites
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    ninja-build \
+    pkg-config \
+    git \
+    zip \
+    nsis \
+    curl \
+    unzip \
+    ca-certificates \
+    gcc-mingw-w64-x86-64 \
+    g++-mingw-w64-x86-64 \
+    binutils-mingw-w64-x86-64 \
+    autoconf \
+    autoconf-archive \
+    automake \
+    libtool \
+    m4 \
+    texinfo \
+    bison \
+    flex \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone and bootstrap vcpkg
+RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && \
+    /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+ENV VCPKG_ROOT=/opt/vcpkg
+ENV PATH="/opt/vcpkg:${PATH}"
+
+WORKDIR /work

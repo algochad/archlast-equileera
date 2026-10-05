@@ -160,6 +160,12 @@ core.register_entity("mcl_shields:shield_entity", {
 			self.object:remove()
 			return
 		end
+		-- One-time restore: fix entities corrupted by removed third-person hide logic
+		-- (visual="sprite", visual_size={x=0,y=0}) that persist in engine properties.
+		if not self._visual_restored then
+			self.object:set_properties({visual = "mesh", mesh = "mcl_shield.obj", visual_size = {x = 1, y = 1}})
+			self._visual_restored = true
+		end
 		local shield_texture = "mcl_shield_base_nopattern.png"
 		local i = self._shield_number
 		local item, itemstack = wielded_item(player, i)
@@ -358,15 +364,15 @@ end
 local function set_shield(player, block, i)
 	if block then
 		if i == 1 then
-			modify_shield(player, vector.new(-9, 4, 0.5), vector.new(80, 100, 0), i) -- TODO
+			modify_shield(player, vector.new(9, 4, 1), vector.new(80, -80, 0), i) -- Offhand blocking: Z 4.0 -> 1
 		else
-			modify_shield(player, vector.new(-8, 4, -2.5), vector.new(80, 80, 0), i)
+			modify_shield(player, vector.new(8, 4, -2.5), vector.new(80, 80, 0), i) -- Main hand blocking
 		end
 	else
 		if i == 1 then
-			modify_shield(player, vector.new(-3, -5, 0), vector.new(0, 180, 0), i)
+			modify_shield(player, vector.new(3, -5, 0), vector.new(0, 0, 0), i) -- Offhand idle
 		else
-			modify_shield(player, vector.new(3, -5, 0), vector.new(0, 0, 0), i)
+			modify_shield(player, vector.new(-3, -5, 0), vector.new(0, 180, 0), i) -- Main hand idle
 		end
 	end
 	local shield = mcl_shields.players[player].shields[i]
@@ -569,6 +575,11 @@ end
 local function update_shield_entity(player, blocking, i)
 	local shield = mcl_shields.players[player].shields[i]
 	if mcl_shields.wielding_shield(player, i) then
+		-- Check if shield entity is still valid; if not, clear reference to trigger respawn
+		if shield and not shield:get_luaentity() then
+			mcl_shields.players[player].shields[i] = nil
+			shield = nil
+		end
 		if not shield then
 			add_shield_entity(player, i)
 		else
@@ -662,7 +673,9 @@ mcl_player.register_globalstep(function(player, dtime)
 
 	local blocking, shieldstack = mcl_shields.is_blocking(player)
 
-	if blocking then
+	local control = player:get_player_control()
+	local is_third_person = control.camera_mode and control.camera_mode > 1
+	if blocking and not is_third_person then
 		update_shield_hud(player, blocking, shieldstack)
 	elseif shield_hud[player] then --this function takes a long time. only run it when necessary
 		remove_shield_hud(player)
@@ -802,6 +815,18 @@ core.register_on_joinplayer(function(player)
 		shields = {},
 		blocking = 0,
 	}
+	-- Remove any existing shield entities attached to this player to clear corrupted
+	-- visual properties (from removed third-person hide logic). Fresh entities will
+	-- respawn on next globalstep with correct initial_properties.
+	for _, obj in ipairs(core.get_objects_inside_radius(player:get_pos(), 5)) do
+		local ent = obj:get_luaentity()
+		if ent and ent.name == "mcl_shields:shield_entity" then
+			local attached = obj:get_attach()
+			if attached and attached:get_player_name() == player:get_player_name() then
+				obj:remove()
+			end
+		end
+	end
 	set_interact(player, true)
 	playerphysics.remove_physics_factor(player, "speed", "shield_speed")
 end)
