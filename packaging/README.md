@@ -26,14 +26,10 @@ Run: `archlast --gameid arch_base` · server: `archlast-server --gameid arch_bas
   Non-system deps: `EXTRA_LIB_DIRS=/path/to/lib`.
 
 ### Windows
-- `packaging/windows/build-windows-docker.sh` + `Dockerfile.build` — **recommended**: cross-compiles
-  native Windows `.exe` from Linux using MSYS2 MINGW64 inside Docker. No Windows host needed.
-  Output: `dist/archlast-<ver>-win64.exe` (NSIS installer) + `dist/archlast-<ver>-win64-portable.zip`.
 - `packaging/windows/build-windows.sh` — native Windows build (run on Windows host with MSVC/MinGW + vcpkg + NSIS).
-  Fallback when Docker is unavailable. Output: same as above, or ZIP if `makensis` absent.
+  Output: `dist/archlast-<ver>-win64.exe` (NSIS installer) + ZIP fallback if `makensis` absent.
 
 ## Verified
-
 - Arch Release: `RUN_IN_PLACE=0`, all backends on, `arch_base` headless boot clean.
 - Debian `.deb`: `apt install` OK on trixie-slim, `--version` + `arch_base` boot verified in-container.
 - AppDir: `AppRun --version`, `--gameid list`, and `archlast-server` headless boot all pass.

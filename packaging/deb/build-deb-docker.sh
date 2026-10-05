@@ -35,6 +35,7 @@ docker run --rm \
       -DBUILD_UNITTESTS=FALSE \
       -DBUILD_BENCHMARKS=FALSE \
       -DVERSION_EXTRA=archlast \
+      -DJPEG_LIBRARY=/usr/lib/x86_64-linux-gnu/libjpeg.a \
       -DENABLE_GETTEXT=TRUE \
       -DENABLE_LEVELDB=TRUE \
       -DENABLE_REDIS=TRUE \
@@ -77,7 +78,7 @@ Maintainer: Archlast <https://github.com/algochad/archlast-equileera>
 Description: Archlast survival sandbox RPG (Luanti fork + arch_base game)
  Archlast engine (luanti/luantiserver clients) bundled with the
  arch_base game. Survival sandbox RPG built on the Luanti 5.17 fork.
-Depends: libc6, libstdc++6, libcurl4t64, libvorbis0a, libvorbisfile3, libsqlite3-0, libopenal1, libfreetype6, libluajit-5.1-2, libpq5, libspatialindex8 | libspatialindex-c8, libjsoncpp26 | libjsoncpp25, libgl1, libglu1-mesa, libjpeg62-turbo | libjpeg-turbo8, libxi6, libsdl2-2.0-0, libleveldb1d, libhiredis1.1.0, libncurses6, libzip5 | libzip4, libzstd1, zlib1g, libpng16-16, hicolor-icon-theme, desktop-file-utils, xdg-utils
+Depends: libc6, libstdc++6, libcurl4t64, libvorbis0a, libvorbisfile3, libsqlite3-0, libopenal1, libfreetype6, libluajit-5.1-2, libpq5, libspatialindex8 | libspatialindex-c8, libjsoncpp26 | libjsoncpp25, libgl1, libglu1-mesa, libxi6, libsdl2-2.0-0, libleveldb1d, libhiredis1.1.0, libncurses6, libzip5 | libzip4, libzstd1, zlib1g, libpng16-16, hicolor-icon-theme, desktop-file-utils, xdg-utils
 Installed-Size: $INSTALLED_SIZE
 CONTROL
 
