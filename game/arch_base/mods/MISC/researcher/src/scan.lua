@@ -117,8 +117,8 @@ minetest.register_on_mods_loaded(function()
   end
 
   -- Register low stack discount
+  local stack_max = researcher.dependencies.mcl_inventory and 64 or tonumber(minetest.settings:get("default_stack_max",99) or 99)
   local low_stack = {}
-  local stack_max = researcher.dependencies.unified_inventory and 64 or tonumber(minetest.settings:get("default_stack_max",99) or 99)
   if researcher.settings.discount_stack_max < 0 then
     researcher.register_adjustment({
       name = "researcher:discount_stack_max",

@@ -736,7 +736,7 @@ end
 
 function mcl_core.get_bottle_place_on_water(bottle)
 	return function(itemstack, placer, pointed_thing)
-		return unified_inventory.give_and_take(placer, itemstack, bottle, "give")
+		return mcl_inventory.give_and_take(placer, itemstack, bottle, "give")
 	end
 end
 

@@ -906,12 +906,12 @@ local function on_receive_fields(player, fields)
 		else
 			local count = table.count(recipe.items, function(_,v) return not ItemStack(v):is_empty()  end)
 			if recipe.width <= 2 and count <= 4 then
-				unified_inventory.update_inventory(player)
+				mcl_inventory.show_inventory(player)
 			else
 				return
 			end
 		end
-		unified_inventory.to_craft_grid(player, recipe)
+		mcl_inventory.to_craft_grid(player, recipe)
 	else
 		local item
 		for field, _ in pairs(fields) do

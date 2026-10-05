@@ -208,6 +208,6 @@ core.register_on_player_inventory_action(function(player, action, _, inventory_i
 	local from_offhand = inventory_info.from_list == "offhand"
 	local to_offhand = inventory_info.to_list == "offhand"
 	if action == "move" and from_offhand or to_offhand then
-		unified_inventory.update_inventory(player)
+		mcl_inventory.update_inventory_formspec(player)
 	end
 end)
