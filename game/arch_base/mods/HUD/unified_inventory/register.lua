@@ -225,6 +225,7 @@ ui.register_page("craft", {
 	formspec[n] = string.format("image_button[%f,%f;1.1,1.1;mcl_player_settings.png;__mcl_player_settings;]", btn_x, btn_y)
 	formspec[n+1] = string.format("tooltip[__mcl_player_settings;%s]", F(S("Player settings")))
 	n = n + 2
+	return {formspec=table.concat(formspec)}
 	end,
 })
 
