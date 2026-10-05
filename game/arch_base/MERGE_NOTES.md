@@ -219,3 +219,9 @@ Arch Base compat patches:
 |---|---|---|
 | `mod.conf` | optional_depends adds `asuna_default_aliases, mcl_fire`; hard `depends = creatura` kept | upstream depends on creatura; mcl_fire optional for fire slime variants; shim optional |
 | `init.lua` (top) | asuna gate shim injected | `asuna = asuna or {content={menagerie={slimes=true}}}` — gate at ~line 58 `if not asuna.content.menagerie.slimes` evaluates false, slimes enabled |
+
+## Heart bar animations
+
+Upstream: https://github.com/fennelfox/mcl_heart_animations @ 5cfbb0227b30a15d504ce05c6c90a6d5b8ca50a2 (2023-10-07, MIT code + CC-BY-SA-4.0 media).
+3 files -> mods/HUD/mcl_heart_animations/ (init.lua reimplemented, mod.conf rewritten, README.md + LICENSE.txt byte-identical; upstream `textures/health2` flash pair dropped — flash uses the engine `^[brighten` modifier instead).
+Reimplemented rather than vendored byte-identical: upstream draws 10 duplicate per-heart statbars at hardcoded offsets (-258/-110, default zigzag slot 0 only), hides the hudbars `health` bar every globalstep (fights mcl_potions poison/regen icons, mcl_powder_snow frozen hearts), leaks per-player tables on leave, and fires `minetest.after` flash callbacks for offline players. The port animates the existing hudbars statbar in place: `^[brighten` flash 3x on damage / 2x on heal (0.15s period), y-jitter shake while HP <= 4. Live offset read via `player:hud_get` so custom `hudbars_sorting` / `hudbars_start_statbar_offset_*` settings keep working; no-op while the health bar is hidden or unregistered (damage disabled).

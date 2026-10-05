@@ -358,9 +358,9 @@ end
 local function set_shield(player, block, i)
 	if block then
 		if i == 1 then
-			modify_shield(player, vector.new(-9, 4, 0.5), vector.new(80, 100, 0), i) -- TODO
+			modify_shield(player, vector.new(-9, 4, 0.5), vector.new(80, 280, 0), i)
 		else
-			modify_shield(player, vector.new(-8, 4, -2.5), vector.new(80, 80, 0), i)
+			modify_shield(player, vector.new(-8, 4, -2.5), vector.new(80, 260, 0), i)
 		end
 	else
 		if i == 1 then

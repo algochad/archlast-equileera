@@ -105,3 +105,11 @@ sha = 6e62b7ce70e314be7fac5636d7ec6314d51a6c62
 license = GPLv3-code-plus-CC-BY-SA-4.0-media
 integration = compat-patched-vendor-into-mods-ENTITIES-livingslimes
 note = asuna gate shim injected at top of init.lua (asuna.content.menagerie.slimes=true) so slimes-enabled gate passes; optional_depends adds asuna_default_aliases+mcl_fire; creatura hard dep kept; .git/.xcf/screenshots/blockbench-json dropped
+
+[content.arch_base.mcl_heart_animations]
+role = first-class-mod
+url = https://github.com/fennelfox/mcl_heart_animations
+sha = 5cfbb0227b30a15d504ce05c6c90a6d5b8ca50a2
+license = MIT-code-plus-CC-BY-SA-4.0-media
+integration = reimplemented-vendor-into-mods-HUD-mcl_heart_animations
+note = upstream draws 10 duplicate per-heart statbars with hardcoded offsets and hides hudbars health every step; port animates the existing hudbars health statbar in place (brighten flash 3x damage / 2x heal, y-jitter shake at <=4 HP) so poison/regen/frozen icons and custom hudbars offsets keep working; upstream textures dropped (flash uses ^[brighten modifier); README.md/LICENSE.txt byte-identical

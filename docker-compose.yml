@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  archlast-server:
+    build:
+      context: .
+      dockerfile: ./engine/archlast-luanti/Dockerfile
+    container_name: archlast-server
+    restart: unless-stopped
+    ports:
+      - "30000:30000/udp"
+      - "30000:30000/tcp"
+    volumes:
+      # Persist world data across deployments
+      - archlast-world:/home/archlast/.minetest/world
+      # Mount custom config (optional, override defaults)
+      - ./minetest.conf:/home/archlast/minetest.conf:ro
+    environment:
+      # Coolify-friendly environment variables
+      - SERVER_NAME=${SERVER_NAME:-Archlast Server}
+      - MAX_USERS=${MAX_USERS:-20}
+      - GAME_ID=${GAME_ID:-archlast}
+    healthcheck:
+      test: ["CMD", "grep", "-q", "listening on", "/home/archlast/.minetest/debug.txt"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits (adjust based on your server capacity)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+
+volumes:
+  archlast-world:
+    driver: local
